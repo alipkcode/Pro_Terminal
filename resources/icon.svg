@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="pt-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232850"/><stop offset="1" stop-color="#0c0f1d"/></linearGradient>
+    <linearGradient id="pt-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#aab0ff"/><stop offset="0.5" stop-color="#b48bff"/><stop offset="1" stop-color="#5aa2ff"/></linearGradient>
+    <linearGradient id="pt-chev" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c9c3ff"/></linearGradient>
+    <radialGradient id="pt-sheen" cx="0.5" cy="0" r="0.75"><stop offset="0" stop-color="#8b96ff" stop-opacity="0.35"/><stop offset="1" stop-color="#8b96ff" stop-opacity="0"/></radialGradient>
+    <filter id="pt-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4"/></filter>
+  </defs>
+  <rect x="3" y="3" width="58" height="58" rx="16" fill="url(#pt-bg)"/>
+  <rect x="3" y="3" width="58" height="58" rx="16" fill="url(#pt-sheen)"/>
+  <rect x="4.25" y="4.25" width="55.5" height="55.5" rx="14.75" fill="none" stroke="url(#pt-rim)" stroke-width="2.5"/>
+  <g filter="url(#pt-glow)">
+    <path d="M18 21.5l11.5 10.5L18 42.5" fill="none" stroke="#9b7bff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M34 43h12" stroke="#f5a623" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <path d="M18 21.5l11.5 10.5L18 42.5" fill="none" stroke="url(#pt-chev)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M34 43h12" stroke="#f7b84b" stroke-width="5.5" stroke-linecap="round"/>
+</svg>

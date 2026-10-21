@@ -1,0 +1,494 @@
+/* Start-up splash: shown while the health check runs. Self-contained (no app stylesheet). */
+
+:root {
+  --font-ui: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', 'Cascadia Code', Consolas, monospace;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --card-top: #181c34;
+  --card-bottom: #0b0d17;
+  --card-border: rgba(255, 255, 255, 0.09);
+  --glow: rgba(139, 150, 255, 0.28);
+  --text: #eef0f8;
+  --text-2: #b6bcd2;
+  --text-3: #7e86a2;
+  --row-hover: rgba(255, 255, 255, 0.03);
+  --track: rgba(255, 255, 255, 0.08);
+  --accent: #8b96ff;
+  --accent-2: #b48bff;
+  --ps: #5aa2ff;
+  --ok: #34d399;
+  --info: #60a5fa;
+  --warn: #fbbf24;
+  --err: #f87171;
+  --btn: rgba(255, 255, 255, 0.06);
+  --btn-hover: rgba(255, 255, 255, 0.11);
+}
+
+:root[data-theme='light'] {
+  --card-top: #ffffff;
+  --card-bottom: #f2f3fa;
+  --card-border: rgba(24, 28, 64, 0.1);
+  --glow: rgba(91, 99, 230, 0.16);
+  --text: #171a2b;
+  --text-2: #464c66;
+  --text-3: #7a8099;
+  --row-hover: rgba(24, 28, 64, 0.03);
+  --track: rgba(24, 28, 64, 0.08);
+  --accent: #5b63e6;
+  --accent-2: #8a55e8;
+  --ps: #2f7fe0;
+  --ok: #12a26e;
+  --info: #2f7fe0;
+  --warn: #c48600;
+  --err: #dc3d4b;
+  --btn: rgba(24, 28, 64, 0.05);
+  --btn-hover: rgba(24, 28, 64, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text);
+  user-select: none;
+  cursor: default;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+button:focus {
+  outline: none;
+}
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- card */
+
+.card {
+  position: absolute;
+  inset: 14px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  background:
+    radial-gradient(120% 60% at 50% -10%, var(--glow), transparent 70%),
+    linear-gradient(180deg, var(--card-top), var(--card-bottom));
+  box-shadow:
+    0 18px 44px -12px rgba(0, 0, 0, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  -webkit-app-region: drag;
+  animation: card-in 0.5s var(--ease-out) both;
+  transition:
+    opacity 0.24s ease,
+    transform 0.26s var(--ease-out);
+}
+.card.closing {
+  opacity: 0;
+  transform: scale(0.97) translateY(4px);
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--text-3);
+  -webkit-app-region: no-drag;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  z-index: 2;
+}
+.close:hover {
+  background: var(--btn-hover);
+  color: var(--text);
+}
+
+/* ---------------------------------------------------------------- hero */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 24px 8px;
+  text-align: center;
+}
+.logo-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+}
+.logo {
+  width: 64px;
+  height: 64px;
+  position: relative;
+  animation: logo-in 0.7s var(--ease-spring) both 0.05s;
+}
+.logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+@keyframes logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-10deg);
+  }
+}
+/* A soft rotating ring behind the logo while checks run. */
+.halo {
+  position: absolute;
+  inset: -10px;
+  border-radius: 28px;
+  background: conic-gradient(from 0deg, var(--accent), var(--accent-2), var(--ps), var(--accent));
+  filter: blur(14px);
+  opacity: 0.45;
+  animation:
+    spin 3.2s linear infinite,
+    breathe 2.4s ease-in-out infinite;
+  transition:
+    opacity 0.4s,
+    filter 0.4s;
+}
+.card[data-mode='opening'] .halo {
+  opacity: 0.7;
+  filter: blur(18px);
+}
+.card[data-mode='failed'] .halo {
+  background: var(--err);
+  opacity: 0.28;
+  animation: none;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+h1 {
+  margin: 13px 0 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.card[data-mode='failed'] h1 {
+  color: var(--err);
+}
+#subtitle {
+  margin: 4px 0 0;
+  color: var(--text-3);
+  font-size: 12.5px;
+  min-height: 18px;
+}
+.swap {
+  animation: swap 0.32s var(--ease-out);
+}
+@keyframes swap {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* ---------------------------------------------------------------- checks */
+
+.checks {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0 18px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.check {
+  display: grid;
+  grid-template-columns: 18px auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  animation: row-in 0.42s var(--ease-out) both;
+  animation-delay: calc(var(--i) * 35ms);
+  transition: background 0.2s;
+}
+.check[hidden] {
+  display: none;
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.check__label {
+  font-weight: 550;
+  color: var(--text-2);
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.check__detail {
+  font-size: 11.5px;
+  color: var(--text-3);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.check[data-status='pending'] .check__label {
+  color: var(--text-3);
+}
+.check[data-status='running'] .check__label,
+.check[data-status='ok'] .check__label {
+  color: var(--text);
+}
+
+/* Warnings, repairs and failures explain themselves on a line of their own. */
+.check[data-status='warn'],
+.check[data-status='fixed'],
+.check[data-status='fail'] {
+  grid-template-columns: 18px 1fr;
+  row-gap: 2px;
+}
+.check[data-status='warn'] .check__detail,
+.check[data-status='fixed'] .check__detail,
+.check[data-status='fail'] .check__detail {
+  grid-column: 2;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.4;
+}
+.check[data-status='warn'] {
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
+}
+.check[data-status='fixed'] {
+  background: color-mix(in srgb, var(--info) 9%, transparent);
+}
+.check[data-status='fail'] {
+  background: color-mix(in srgb, var(--err) 11%, transparent);
+}
+.check[data-status='fail'] .check__label {
+  color: var(--err);
+}
+.check[data-status='fail'] .check__detail {
+  color: var(--text-2);
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+
+/* status icon */
+.check__icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  align-self: start;
+  margin-top: 1px;
+}
+.check[data-status='pending'] .check__icon {
+  border: 1.5px solid var(--track);
+  transform: scale(0.6);
+}
+.check[data-status='running'] .check__icon {
+  border: 2px solid var(--track);
+  border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+}
+.check[data-status='ok'] .check__icon,
+.check[data-status='fixed'] .check__icon,
+.check[data-status='warn'] .check__icon,
+.check[data-status='fail'] .check__icon {
+  animation: pop 0.38s var(--ease-spring);
+}
+.check[data-status='ok'] .check__icon {
+  background: color-mix(in srgb, var(--ok) 18%, transparent);
+  color: var(--ok);
+}
+.check[data-status='fixed'] .check__icon {
+  background: color-mix(in srgb, var(--info) 20%, transparent);
+  color: var(--info);
+}
+.check[data-status='warn'] .check__icon {
+  background: color-mix(in srgb, var(--warn) 20%, transparent);
+  color: var(--warn);
+}
+.check[data-status='fail'] .check__icon {
+  background: color-mix(in srgb, var(--err) 20%, transparent);
+  color: var(--err);
+}
+@keyframes pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+.check__icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.check__icon .dot {
+  fill: currentColor;
+  stroke: none;
+}
+.check__icon .draw {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  animation: draw 0.36s var(--ease-out) 0.08s forwards;
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- actions */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 26px 2px;
+  -webkit-app-region: no-drag;
+  animation: row-in 0.35s var(--ease-out) both;
+}
+.actions[hidden] {
+  display: none;
+}
+.btn {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  background: var(--btn);
+  border: 1px solid var(--card-border);
+  transition:
+    background 0.15s,
+    transform 0.12s var(--ease-out);
+}
+.btn:hover:not(:disabled) {
+  background: var(--btn-hover);
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.btn--primary {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 14px -4px var(--accent);
+}
+.btn--primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  filter: brightness(1.08);
+}
+
+/* ---------------------------------------------------------------- footer */
+
+.foot {
+  padding: 10px 24px 15px;
+}
+.bar {
+  position: relative;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+.bar__fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  transform: scaleX(0.04);
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--ps));
+  transition: transform 0.35s var(--ease-out);
+}
+/* moving sheen while working */
+.bar__fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-100%);
+  animation: sheen 1.3s ease-in-out infinite;
+}
+.card[data-mode='failed'] .bar__fill {
+  background: var(--err);
+}
+.card[data-mode='failed'] .bar__fill::after {
+  display: none;
+}
+@keyframes sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+.foot__row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

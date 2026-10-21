@@ -1,0 +1,123 @@
+/* Design tokens. Dark is the default; light overrides below. */
+:root {
+  --font-ui: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', 'Cascadia Code', Consolas, 'Courier New', monospace;
+
+  --titlebar-h: 40px;
+  --statusbar-h: 28px;
+  --radius-xs: 5px;
+  --radius-sm: 7px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --cmd: #f5b544;
+  --cmd-soft: rgba(245, 181, 68, 0.14);
+  --ps: #5aa2ff;
+  --ps-soft: rgba(90, 162, 255, 0.15);
+
+  --ok: #34d399;
+  --ok-soft: rgba(52, 211, 153, 0.14);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.14);
+  --err: #f87171;
+  --err-soft: rgba(248, 113, 113, 0.14);
+  --info: #60a5fa;
+
+  --term-bg: #0d1017;
+}
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0b0e14;
+  --bg-elev: #12161f;
+  --bg-elev-2: #181d28;
+  --bg-overlay: rgba(10, 13, 19, 0.72);
+  --chrome: rgba(13, 16, 23, 0.94);
+  --chrome-2: rgba(17, 21, 30, 0.9);
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-2: rgba(255, 255, 255, 0.06);
+  --surface-3: rgba(255, 255, 255, 0.09);
+  --hover: rgba(255, 255, 255, 0.055);
+  --active: rgba(255, 255, 255, 0.085);
+  --border: rgba(255, 255, 255, 0.075);
+  --border-strong: rgba(255, 255, 255, 0.13);
+  --text: #e7eaf3;
+  --text-2: #a7aec0;
+  --text-3: #6f778b;
+  --text-4: #4f5668;
+  --accent: #8b96ff;
+  --accent-2: #b48bff;
+  --accent-strong: #6f7cff;
+  --accent-soft: rgba(139, 150, 255, 0.14);
+  --accent-text: #0b0e14;
+  --focus-ring: rgba(139, 150, 255, 0.55);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.35);
+  --glass: rgba(20, 24, 34, 0.82);
+  --scrollbar: rgba(255, 255, 255, 0.1);
+  --scrollbar-hover: rgba(255, 255, 255, 0.18);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f3f5fa;
+  --bg-elev: #ffffff;
+  --bg-elev-2: #f7f8fc;
+  --bg-overlay: rgba(235, 238, 246, 0.7);
+  --chrome: rgba(243, 245, 250, 0.95);
+  --chrome-2: rgba(248, 249, 252, 0.92);
+  --surface: rgba(20, 30, 60, 0.03);
+  --surface-2: rgba(20, 30, 60, 0.055);
+  --surface-3: rgba(20, 30, 60, 0.085);
+  --hover: rgba(20, 30, 60, 0.05);
+  --active: rgba(20, 30, 60, 0.08);
+  --border: rgba(20, 30, 60, 0.09);
+  --border-strong: rgba(20, 30, 60, 0.16);
+  --text: #1c2130;
+  --text-2: #4d5568;
+  --text-3: #7c8496;
+  --text-4: #a3a9b8;
+  --accent: #5b63e6;
+  --accent-2: #8a55e8;
+  --accent-strong: #4a52d6;
+  --accent-soft: rgba(91, 99, 230, 0.12);
+  --accent-text: #ffffff;
+  --focus-ring: rgba(91, 99, 230, 0.45);
+  --cmd: #c98400;
+  --cmd-soft: rgba(201, 132, 0, 0.12);
+  --ps: #2f6fdc;
+  --ps-soft: rgba(47, 111, 220, 0.12);
+  --ok: #12a26e;
+  --ok-soft: rgba(18, 162, 110, 0.12);
+  --warn: #c48600;
+  --warn-soft: rgba(196, 134, 0, 0.12);
+  --err: #dc3d4b;
+  --err-soft: rgba(220, 61, 75, 0.1);
+  --shadow-sm: 0 1px 2px rgba(20, 30, 60, 0.08);
+  --shadow: 0 8px 24px rgba(20, 30, 60, 0.12), 0 2px 6px rgba(20, 30, 60, 0.06);
+  --shadow-lg: 0 24px 64px rgba(20, 30, 60, 0.2), 0 6px 18px rgba(20, 30, 60, 0.1);
+  --glass: rgba(255, 255, 255, 0.86);
+  --scrollbar: rgba(20, 30, 60, 0.14);
+  --scrollbar-hover: rgba(20, 30, 60, 0.24);
+}
+
+/* With Mica/Acrylic the window background shows through the chrome. */
+:root[data-material='mica'][data-theme='dark'],
+:root[data-material='acrylic'][data-theme='dark'] {
+  --bg: transparent;
+  --chrome: rgba(12, 15, 22, 0.55);
+  --chrome-2: rgba(14, 17, 25, 0.5);
+}
+:root[data-material='mica'][data-theme='light'],
+:root[data-material='acrylic'][data-theme='light'] {
+  --bg: transparent;
+  --chrome: rgba(246, 248, 252, 0.55);
+  --chrome-2: rgba(250, 251, 254, 0.5);
+}

@@ -1,0 +1,462 @@
+/* Terminal area: live panes, archived viewer, find bar and the start screen. */
+
+.terminal-area {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--term-bg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  transition: background 0.3s;
+}
+
+.terminal-area__stack {
+  position: absolute;
+  inset: 0;
+}
+
+.term-pane {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.14s;
+}
+.term-pane--visible {
+  visibility: visible;
+  opacity: 1;
+  z-index: 1;
+}
+
+/* Left padding leaves room for the command status gutter. */
+.term-pane__host {
+  position: absolute;
+  inset: 8px 2px 4px 14px;
+}
+
+.term-host {
+  width: 100%;
+  height: 100%;
+}
+
+.term-host .xterm,
+.log-viewer__host .xterm {
+  height: 100%;
+}
+/* xterm draws its own scrollbar; hide the native one and let the card color fill the
+   space below the last row (xterm.css paints the viewport black). */
+.xterm .xterm-viewport {
+  scrollbar-width: none;
+  background-color: transparent !important;
+}
+.xterm-screen {
+  overflow: visible;
+}
+
+/* Exit-code marks drawn by shell integration next to each prompt. */
+.xterm .cmd-mark {
+  width: 3px !important;
+  margin-left: -9px;
+  border-radius: 2px;
+  pointer-events: auto;
+}
+.xterm .cmd-mark--ok {
+  background: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+.xterm .cmd-mark--err {
+  background: var(--err);
+  box-shadow: 0 0 6px var(--err);
+}
+
+.term-pane.bell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px var(--warn);
+  animation: bell-flash 0.45s var(--ease-out) forwards;
+}
+@keyframes bell-flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.term-drop {
+  position: absolute;
+  inset: 10px;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 2px dashed var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-weight: 650;
+  pointer-events: none;
+  backdrop-filter: blur(1px);
+}
+
+.exit-banner {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  translate: -50% 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100% - 40px);
+  padding: 10px 12px 10px 12px;
+  border-radius: 14px;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+}
+.exit-banner__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--text-2);
+  background: var(--surface-3);
+}
+.exit-banner__icon--err {
+  color: var(--err);
+  background: var(--err-soft);
+}
+.exit-banner__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-right: 6px;
+}
+.exit-banner__text b {
+  font-size: 13px;
+}
+.exit-banner__text span {
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+/* ---------------------------------------------------------------- find bar */
+
+.find-bar {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 4px 4px 4px;
+  border-radius: 10px;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+}
+.find-bar__input {
+  width: 210px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+.find-bar__input:focus {
+  border-color: var(--accent);
+}
+.find-bar__count {
+  min-width: 66px;
+  padding: 0 6px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.find-bar__count--none {
+  color: var(--err);
+}
+.find-bar__sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--border-strong);
+}
+
+/* ---------------------------------------------------------------- archived viewer */
+
+.viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  background: var(--term-bg);
+}
+.viewer__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px 9px 16px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-elev) 80%, transparent);
+}
+.viewer__titles {
+  flex: 1;
+  min-width: 0;
+}
+.viewer__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.viewer__badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.viewer__meta {
+  display: flex;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.viewer__meta .mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.viewer__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.viewer__body {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+.log-viewer {
+  position: relative;
+  height: 100%;
+}
+.log-viewer__host {
+  position: absolute;
+  inset: 8px 2px 4px 14px;
+}
+.log-viewer__state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  font-size: 12.5px;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- start screen */
+
+.empty-state {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  padding: 40px 24px;
+  overflow: auto;
+  background:
+    radial-gradient(900px 420px at 50% -12%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    radial-gradient(600px 300px at 85% 110%, color-mix(in srgb, var(--ps) 10%, transparent), transparent 70%),
+    var(--term-bg);
+}
+.empty-state::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000, transparent);
+}
+.empty-state > * {
+  position: relative;
+}
+
+.empty-state__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+.empty-state__logo {
+  filter: drop-shadow(0 12px 32px color-mix(in srgb, var(--accent) 50%, transparent));
+  animation: float 6s ease-in-out infinite;
+}
+@keyframes float {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+.empty-state__hero h1 {
+  margin: 12px 0 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.empty-state__hero p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+
+.empty-state__cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+
+.shell-card {
+  --c: var(--ps);
+  position: relative;
+  width: 236px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 22px 20px 18px;
+  border-radius: 16px;
+  text-align: left;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg-elev) 70%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.shell-card--cmd {
+  --c: var(--cmd);
+}
+.shell-card:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--c) 45%, transparent);
+  box-shadow:
+    0 14px 40px -12px color-mix(in srgb, var(--c) 40%, transparent),
+    var(--shadow-sm);
+}
+.shell-card > * {
+  position: relative;
+}
+.shell-card__glow {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  top: -120px;
+  right: -90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 32%, transparent), transparent 70%);
+  opacity: 0.5;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.shell-card:hover .shell-card__glow {
+  opacity: 1;
+}
+.shell-card .shell-icon {
+  margin-bottom: 8px;
+  padding: 9px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+}
+.shell-card__title {
+  font-size: 15px;
+  font-weight: 650;
+}
+.shell-card__desc {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.shell-card kbd {
+  margin-top: 8px;
+}
+
+.empty-state__quick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  width: min(660px, 100%);
+}
+.quick-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.quick-col__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 6px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.quick-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 12.5px;
+  transition: background 0.12s;
+}
+.quick-row:hover {
+  background: var(--hover);
+}
+.quick-row > span:not(.shell-icon):not(.quick-row__meta) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quick-row svg {
+  flex-shrink: 0;
+}
+.quick-row__meta {
+  flex-shrink: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-3);
+}

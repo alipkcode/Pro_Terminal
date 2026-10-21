@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Pro Terminal</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body>
+    <main class="card" id="card">
+      <button class="close" id="close" aria-label="Quit" title="Quit">
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+      </button>
+      <header class="hero">
+        <div class="logo-wrap">
+          <div class="halo"></div>
+          <div class="logo" id="logo"></div>
+        </div>
+        <h1 id="title">Pro Terminal</h1>
+        <p id="subtitle">Starting…</p>
+      </header>
+      <ol class="checks" id="checks" aria-live="polite"></ol>
+      <div class="actions" id="actions" hidden>
+        <button class="btn btn--primary" data-action="retry">Try again</button>
+        <button class="btn" data-action="open-data">Open data folder</button>
+        <button class="btn" data-action="copy-report">Copy report</button>
+      </div>
+      <footer class="foot">
+        <div class="bar"><div class="bar__fill" id="bar"></div></div>
+        <div class="foot__row">
+          <span id="version"></span>
+          <span id="count"></span>
+        </div>
+      </footer>
+    </main>
+    <script type="module" src="/splash/main.ts"></script>
+  </body>
+</html>
