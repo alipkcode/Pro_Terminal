@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export const DEFAULT_LIBRARY: Library = {
   favorites: [],
   snippets: [],
+  launchers: [],
   tags: [
     { name: 'important', color: '#f87171' },
     { name: 'deploy', color: '#a78bfa' },
@@ -64,5 +65,21 @@ export const LIMITS = {
   snippetCommandLength: 20000,
   nameLength: 120,
   groupNameLength: 60,
-  snippetGroups: 500
+  snippetGroups: 500,
+  launchers: 200
 }
+
+/** Color moods offered for shortcut icons; the first matches the app icon. */
+export const LAUNCHER_MOODS: { name: string; color: string }[] = [
+  { name: 'Indigo', color: '#8b7bff' },
+  { name: 'Ocean', color: '#3b9dff' },
+  { name: 'Lagoon', color: '#22d3ee' },
+  { name: 'Emerald', color: '#34d399' },
+  { name: 'Lime', color: '#a3e635' },
+  { name: 'Amber', color: '#fbbf24' },
+  { name: 'Sunset', color: '#fb923c' },
+  { name: 'Crimson', color: '#f43f5e' },
+  { name: 'Rose', color: '#f472b6' },
+  { name: 'Orchid', color: '#d946ef' },
+  { name: 'Graphite', color: '#94a3b8' }
+]

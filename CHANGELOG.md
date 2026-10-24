@@ -4,6 +4,22 @@ All notable changes to Pro Terminal are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Shortcuts.** Save a folder, a shell (CMD, Windows PowerShell or PowerShell 7) and an optional script as a
+  one-click shortcut. Choose whether it runs the script or only types it, and give it a name and a color mood.
+  - Pinned shortcuts sit in the title bar next to the panel buttons, and the ⚡ menu lists all of them.
+  - A three-step wizard shows a live preview of the desktop icon and of what will be typed.
+  - The shortcuts manager (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>) reorders, pins, edits and duplicates them.
+- **Desktop shortcuts.** Any shortcut can be added to the Windows desktop with the app icon recolored in its own mood.
+  It opens as a tab in Pro Terminal (starting the app, or reusing the open window), or as a classic console window
+  that works without Pro Terminal.
+- Shortcuts appear in the command palette and are included in library export and import.
+
+### Changed
+- The keyboard-shortcuts section in Settings is now called *Keyboard*, so it isn't confused with the new shortcuts.
+
 ## [1.2.0] - 2026-10-21
 
 The first public release. It includes everything from the development versions below, which were never published separately.

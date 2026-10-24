@@ -12,6 +12,7 @@ import {
   togglePanel,
   zoom
 } from './actions'
+import { openLauncherManager } from './launchers'
 
 export interface Shortcut {
   keys: string
@@ -33,6 +34,7 @@ export const SHORTCUTS: Shortcut[] = [
   { keys: 'Ctrl+Shift+E', label: 'Folders panel' },
   { keys: 'Ctrl+Shift+S', label: 'Snippets panel' },
   { keys: 'Ctrl+Shift+H', label: 'Archive' },
+  { keys: 'Ctrl+Shift+L', label: 'Shortcuts (folder + script launchers)' },
   { keys: 'Ctrl+,', label: 'Settings' },
   { keys: 'Ctrl+= / Ctrl+- / Ctrl+0', label: 'Zoom in / out / reset' },
   { keys: 'Ctrl+C / Ctrl+V', label: 'Copy selection / paste' }
@@ -45,7 +47,15 @@ export function handleGlobalKey(e: KeyboardEvent): boolean {
   const shift = e.shiftKey
   const code = e.code
   const state = get()
-  const modalOpen = !!(state.confirm || state.varsPrompt || state.snippetEditor || state.favoriteEditor || state.quitRequest)
+  const modalOpen = !!(
+    state.confirm ||
+    state.varsPrompt ||
+    state.snippetEditor ||
+    state.favoriteEditor ||
+    state.quitRequest ||
+    state.launcherEditor ||
+    state.launcherManager
+  )
 
   if (e.key === 'F1' || (ctrl && shift && code === 'KeyP')) {
     if (!modalOpen) openPalette()
@@ -83,6 +93,9 @@ export function handleGlobalKey(e: KeyboardEvent): boolean {
       case 'KeyH':
         if (state.overlay === 'archive') set({ overlay: null })
         else openArchive()
+        return true
+      case 'KeyL':
+        openLauncherManager()
         return true
       case 'Tab':
         cycleSession(-1)

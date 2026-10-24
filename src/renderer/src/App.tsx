@@ -12,6 +12,8 @@ import { CommandPalette } from './components/CommandPalette'
 import { SettingsDialog } from './components/SettingsDialog'
 import { SnippetEditor } from './components/dialogs/SnippetEditor'
 import { ConfirmDialog, FavoriteEditor, QuitDialog, VarsDialog } from './components/dialogs/Dialogs'
+import { LauncherManager } from './components/launchers/LauncherManager'
+import { LauncherWizard } from './components/launchers/LauncherWizard'
 import { Toasts } from './components/ui/Toasts'
 import { ContextMenu } from './components/ui/ContextMenu'
 import { TooltipLayer } from './components/ui/Tooltip'
@@ -62,6 +64,8 @@ export function App() {
       <SnippetEditor />
       <VarsDialog />
       <FavoriteEditor />
+      <LauncherManager />
+      <LauncherWizard />
       <ConfirmDialog />
       <QuitDialog />
       <ContextMenu />

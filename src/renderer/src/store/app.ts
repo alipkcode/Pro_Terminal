@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { ReactNode } from 'react'
 import { DEFAULT_LIBRARY, DEFAULT_SETTINGS } from '@shared/defaults'
-import type { AppInfo, ArchivedSession, FavoriteFolder, Library, QuitRequest, SessionInfo, Settings, Snippet } from '@shared/types'
+import type { AppInfo, ArchivedSession, FavoriteFolder, Launcher, Library, QuitRequest, SessionInfo, Settings, Snippet } from '@shared/types'
 import type { SnippetVar } from '@/lib/snippets'
 
 export type PanelId = 'sessions' | 'folders' | 'snippets'
@@ -79,6 +79,11 @@ interface State {
   confirm: ConfirmRequest | null
   snippetEditor: Partial<Snippet> | null
   favoriteEditor: FavoriteFolder | null
+  /** Shortcut being created (no id) or edited, and the wizard step to open on. */
+  launcherEditor: { draft: Partial<Launcher>; step?: number } | null
+  launcherManager: boolean
+  /** Shortcuts whose desktop shortcut file exists (checked when the shortcuts UI opens). */
+  launchersOnDesktop: string[]
   varsPrompt: VarsPrompt | null
   quitRequest: QuitRequest | null
   contextMenu: ContextMenuState | null
@@ -106,6 +111,9 @@ export const useApp = create<State>()(() => ({
   confirm: null,
   snippetEditor: null,
   favoriteEditor: null,
+  launcherEditor: null,
+  launcherManager: false,
+  launchersOnDesktop: [],
   varsPrompt: null,
   quitRequest: null,
   contextMenu: null,

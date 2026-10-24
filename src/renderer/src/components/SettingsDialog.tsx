@@ -44,7 +44,7 @@ const SECTIONS: { id: Section; label: string; icon: ReactNode }[] = [
   { id: 'terminal', label: 'Terminal', icon: <TerminalSquare size={15} /> },
   { id: 'snippets', label: 'Saved commands', icon: <Code2 size={15} /> },
   { id: 'archive', label: 'Archive & data', icon: <Archive size={15} /> },
-  { id: 'shortcuts', label: 'Shortcuts', icon: <Keyboard size={15} /> },
+  { id: 'shortcuts', label: 'Keyboard', icon: <Keyboard size={15} /> },
   { id: 'about', label: 'About', icon: <Info size={15} /> }
 ]
 
@@ -541,7 +541,7 @@ function ArchiveSettings() {
           <option value={365}>After a year</option>
         </select>
       </Row>
-      <Row label="Favorites & snippets" hint="Back up or move your library to another PC.">
+      <Row label="Favorites, snippets & shortcuts" hint="Back up or move your library to another PC.">
         <div className="btn-row">
           <button className="btn btn--sm" onClick={() => void api.library.exportLibrary().then((ok) => ok && toast('success', 'Library exported'))}>
             Export…
@@ -550,7 +550,7 @@ function ArchiveSettings() {
             className="btn btn--sm"
             onClick={() =>
               void api.library.importLibrary().then((r) => {
-                if (r) toast('success', 'Library imported', { message: `${r.favorites} folders, ${r.snippets} snippets added` })
+                if (r) toast('success', 'Library imported', { message: `${r.favorites} folders, ${r.snippets} snippets, ${r.launchers} shortcuts added` })
               })
             }
           >

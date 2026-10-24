@@ -1,7 +1,8 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, nativeTheme, shell } from 'electron'
+import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { IPC } from '@shared/ipc'
-import type { AppInfo, AppTheme, ArchivePatch, CreateSessionOptions, ExecOptions, Settings, ShellId, Snippet, TagDef, WindowMaterial } from '@shared/types'
+import type { AppInfo, AppTheme, ArchivePatch, CreateSessionOptions, ExecOptions, IconImages, Launcher, Settings, ShellId, Snippet, TagDef, WindowMaterial } from '@shared/types'
 import type { LibraryStore } from './store/library'
 import type { SettingsStore } from './store/settings'
 import { displayTitle, isSessionId, type SessionStore } from './store/sessions'
@@ -9,6 +10,7 @@ import { isObject } from './store/util'
 import { isDirectory, type SessionManager } from './pty/manager'
 import { detectShells } from './pty/shells'
 import { getLastReport } from './health/report'
+import { LauncherFiles, takePendingLaunchers } from './launchers'
 import { TITLEBAR_HEIGHT } from './window'
 
 interface Ctx {
@@ -30,6 +32,7 @@ const safeFileName = (s: string): string => s.replace(/[<>:"/\\|?*\x00-\x1f]+/g,
 
 export function registerIpc(ctx: Ctx): void {
   const { manager, settings, library, store } = ctx
+  const launcherFiles = new LauncherFiles(ctx.dataDir, settings)
   const handle = (channel: string, fn: (...args: any[]) => unknown): void => {
     ipcMain.handle(channel, (_e, ...args) => fn(...args))
   }
@@ -96,6 +99,45 @@ export function registerIpc(ctx: Ctx): void {
   handle(IPC.snippetGroupsReorder, (names: string[]) => library.reorderSnippetGroups(Array.isArray(names) ? names : []))
   handle(IPC.snippetGroupsSetCollapsed, (name: string, collapsed: boolean) => library.setSnippetGroupCollapsed(name, collapsed === true))
   handle(IPC.snippetsUsed, (id: string, vars: Record<string, string>) => library.snippetUsed(id, isObject(vars) ? (vars as Record<string, string>) : {}))
+  // ---------------------------------------------------------------- launchers (title bar shortcuts)
+  handle(IPC.launchersUpsert, (l: Partial<Launcher>) => library.upsertLauncher(isObject(l) ? l : {}))
+  handle(IPC.launchersRemove, (id: string) => {
+    const l = typeof id === 'string' ? library.getLauncher(id) : undefined
+    if (!l) return
+    try {
+      launcherFiles.removeDesktop(l)
+    } catch (err) {
+      console.warn('[launchers] could not remove desktop shortcut', err)
+    }
+    library.removeLauncher(l.id)
+  })
+  handle(IPC.launchersReorder, (ids: string[]) => library.reorderLaunchers(Array.isArray(ids) ? ids : []))
+  handle(IPC.launchersUsed, (id: string) => typeof id === 'string' && library.launcherUsed(id))
+  handle(IPC.launchersDesktopCreate, (id: string, icons: IconImages) => {
+    const l = typeof id === 'string' ? library.getLauncher(id) : undefined
+    if (!l) return { ok: false, error: 'This shortcut no longer exists.' }
+    if (!isDirectory(l.folder)) return { ok: false, error: `The folder ${l.folder} was not found.` }
+    try {
+      const path = launcherFiles.writeDesktop(l, icons)
+      library.setLauncherDesktopLink(l.id, path)
+      return { ok: true, path }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+  handle(IPC.launchersDesktopRemove, (id: string) => {
+    const l = typeof id === 'string' ? library.getLauncher(id) : undefined
+    if (!l) return
+    try {
+      launcherFiles.removeDesktop(l)
+    } catch (err) {
+      console.warn('[launchers] could not remove desktop shortcut', err)
+    }
+    library.setLauncherDesktopLink(l.id, undefined)
+  })
+  handle(IPC.launchersDesktopStatus, () => library.data.launchers.filter((l) => l.desktopLink && existsSync(l.desktopLink)).map((l) => l.id))
+  handle(IPC.launchersTakePending, () => takePendingLaunchers())
+
   handle(IPC.tagsUpsert, (tag: TagDef, previous?: string) => {
     const res = library.upsertTag(tag, previous)
     if (res?.renamedFrom) store.renameTag(res.renamedFrom, res.name)

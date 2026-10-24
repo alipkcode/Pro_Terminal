@@ -63,6 +63,17 @@ const api: PtApi = {
     importLibrary: () => invoke(IPC.libraryImport),
     onChanged: (cb) => subscribe(IPC.evLibraryChanged, cb)
   },
+  launchers: {
+    upsert: (l) => invoke(IPC.launchersUpsert, l),
+    remove: (id) => invoke(IPC.launchersRemove, id),
+    reorder: (ids) => invoke(IPC.launchersReorder, ids),
+    used: (id) => invoke(IPC.launchersUsed, id),
+    createDesktop: (id, icons) => invoke(IPC.launchersDesktopCreate, id, icons),
+    removeDesktop: (id) => invoke(IPC.launchersDesktopRemove, id),
+    desktopStatus: () => invoke(IPC.launchersDesktopStatus),
+    takePending: () => invoke(IPC.launchersTakePending),
+    onPending: (cb) => subscribe(IPC.evLaunchersPending, cb)
+  },
   settings: {
     get: () => invoke(IPC.settingsGet),
     set: (patch) => invoke(IPC.settingsSet, patch),

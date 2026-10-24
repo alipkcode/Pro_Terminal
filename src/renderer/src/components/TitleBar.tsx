@@ -3,6 +3,7 @@ import { Archive, Code2, Command, FolderHeart, Layers, Settings2 } from 'lucide-
 import { useApp, type PanelId } from '@/store/app'
 import { openArchive, openPalette, openSettings, togglePanel } from '@/lib/actions'
 import { Logo } from './icons'
+import { LauncherDock } from './launchers/LauncherDock'
 import { ShellToggle } from './ShellToggle'
 import { Tabs } from './Tabs'
 
@@ -58,6 +59,10 @@ export function TitleBar() {
           {archiveCount > 0 && <span className="nav-btn__count">{archiveCount > 99 ? '99+' : archiveCount}</span>}
         </button>
       </nav>
+
+      <div className="titlebar__sep" />
+
+      <LauncherDock />
 
       <div className="titlebar__sep" />
 

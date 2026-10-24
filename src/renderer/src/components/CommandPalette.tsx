@@ -21,6 +21,7 @@ import {
   Star,
   Sun,
   X,
+  Zap,
   ZoomIn,
   ZoomOut
 } from 'lucide-react'
@@ -52,7 +53,8 @@ import { fuzzyMatch } from '@/lib/fuzzy'
 import { folderName, samePath, shortPath } from '@/lib/format'
 import { familyOf } from '@/lib/shell'
 import { TERMINAL_THEMES } from '@/terminal/themes'
-import { ShellIcon } from './icons'
+import { openLauncherEditor, openLauncherManager, runLauncher } from '@/lib/launchers'
+import { LauncherIcon, ShellIcon } from './icons'
 import { Highlight } from './ui/Controls'
 
 interface Item {
@@ -66,7 +68,7 @@ interface Item {
   run: (e: { ctrlKey: boolean; shiftKey: boolean; altKey: boolean }) => void
 }
 
-const GROUP_ORDER = ['Sessions', 'Snippets', 'Folders', 'Actions', 'Themes']
+const GROUP_ORDER = ['Sessions', 'Shortcuts', 'Snippets', 'Folders', 'Actions', 'Themes']
 
 function useItems(): Item[] {
   const sessions = useApp((s) => s.sessions)
@@ -91,6 +93,19 @@ function useItems(): Item[] {
         hint: id === activeId ? 'current' : s.status === 'busy' ? 'running' : undefined,
         keywords: `${s.cwd} ${familyOf(s.shell)}`,
         run: () => activate(id)
+      })
+    }
+
+    for (const l of library.launchers) {
+      items.push({
+        id: `launcher:${l.id}`,
+        group: 'Shortcuts',
+        title: l.name,
+        subtitle: l.script.trim() ? `${shortPath(l.folder, 30)} · ${l.script.trim().split('\n')[0]}` : shortPath(l.folder, 50),
+        icon: <LauncherIcon color={l.color} size={16} />,
+        hint: 'Open',
+        keywords: `shortcut launcher ${l.folder} ${l.script}`,
+        run: (e) => void runLauncher(l, { here: e.shiftKey })
       })
     }
 
@@ -144,6 +159,8 @@ function useItems(): Item[] {
         if (dir) void newSession({ cwd: dir })
       }),
       act('new-snippet', 'New snippet…', <Code2 size={14} />, () => openSnippetEditor(), undefined, 'save command'),
+      act('new-launcher', 'New shortcut…', <Zap size={14} />, () => openLauncherEditor(), undefined, 'launcher desktop folder script'),
+      act('launchers', 'Manage shortcuts', <Zap size={14} />, openLauncherManager, 'Ctrl+Shift+L', 'launcher desktop'),
       act('archive', 'Open archive', <Archive size={14} />, () => openArchive(), 'Ctrl+Shift+H', 'history closed sessions'),
       act('settings', 'Open settings', <Settings2 size={14} />, openSettings, 'Ctrl+,', 'preferences'),
       act('panel', 'Toggle side panel', <PanelLeft size={14} />, () => togglePanel(get().panel ?? 'sessions'), 'Ctrl+Shift+B'),
@@ -221,7 +238,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     if (!q) {
       // Without a query: open sessions, then snippets and folders, then common actions.
       const pick = (g: string, n: number) => items.filter((i) => i.group === g).slice(0, n)
-      return [...pick('Sessions', 6), ...pick('Snippets', 5), ...pick('Folders', 5), ...pick('Actions', 8)].map((item) => ({ item, indices: [] as number[] }))
+      return [...pick('Sessions', 6), ...pick('Shortcuts', 5), ...pick('Snippets', 5), ...pick('Folders', 5), ...pick('Actions', 8)].map((item) => ({ item, indices: [] as number[] }))
     }
     return items
       .map((item) => {
@@ -251,7 +268,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     if (!row) return
     set({ paletteOpen: false })
     row.item.run(e)
-    if (row.item.group !== 'Actions' || !/archive|settings|find|rename/.test(row.item.id)) focusActive()
+    if (row.item.group !== 'Actions' || !/archive|settings|find|rename|launcher/.test(row.item.id)) focusActive()
   }
 
   let n = -1

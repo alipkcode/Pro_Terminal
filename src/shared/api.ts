@@ -9,6 +9,8 @@ import type {
   ExecOptions,
   ExecResult,
   FavoriteFolder,
+  IconImages,
+  Launcher,
   Library,
   QuitRequest,
   SessionInfo,
@@ -71,8 +73,23 @@ export interface PtApi {
     removeRecent(path: string): Promise<void>
     clearRecent(): Promise<void>
     exportLibrary(): Promise<boolean>
-    importLibrary(): Promise<{ favorites: number; snippets: number } | null>
+    importLibrary(): Promise<{ favorites: number; snippets: number; launchers: number } | null>
     onChanged(cb: (lib: Library) => void): Unsubscribe
+  }
+  launchers: {
+    /** Create (no id) or update a shortcut; fields left out keep their value. */
+    upsert(launcher: Partial<Launcher>): Promise<Launcher | null>
+    remove(id: string): Promise<void>
+    reorder(ids: string[]): Promise<void>
+    used(id: string): Promise<void>
+    /** Create (or refresh) the desktop shortcut, using icon images rendered by the renderer. */
+    createDesktop(id: string, icons: IconImages): Promise<{ ok: true; path: string } | { ok: false; error: string }>
+    removeDesktop(id: string): Promise<void>
+    /** Ids of shortcuts whose desktop shortcut file still exists. */
+    desktopStatus(): Promise<string[]>
+    /** Shortcut ids requested from the command line (desktop shortcuts) and not handled yet. */
+    takePending(): Promise<string[]>
+    onPending(cb: () => void): Unsubscribe
   }
   settings: {
     get(): Promise<Settings>

@@ -1,5 +1,13 @@
-import { useId } from 'react'
+import { useId, useMemo } from 'react'
 import type { ShellFamily, ShellId } from '@shared/types'
+import { iconSvg } from '@/lib/launcherIcon'
+
+/** The app icon in a shortcut's color mood (see lib/launcherIcon.ts). */
+export function LauncherIcon({ color, size = 22, className }: { color: string; size?: number; className?: string }) {
+  const uid = 'lc' + useId().replace(/[^a-zA-Z0-9_-]/g, '')
+  const html = useMemo(() => iconSvg(color, { small: size <= 24, uid, size }), [color, size, uid])
+  return <span className={`launcher-icon ${className ?? ''}`} style={{ width: size, height: size }} aria-hidden dangerouslySetInnerHTML={{ __html: html }} />
+}
 
 /** Command Prompt glyph: a console window with a prompt. */
 export function CmdIcon({ size = 16, className }: { size?: number; className?: string }) {

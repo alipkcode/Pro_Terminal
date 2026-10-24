@@ -7,6 +7,7 @@ import { getTerminalTheme } from '@/terminal/themes'
 import { cdCommand, familyOf, FAMILY_LABEL, quotePath, SHELL_META } from './shell'
 import { expandSnippet, groupSnippets, snippetVariables, usesBuiltin, EXAMPLE_SNIPPETS } from './snippets'
 import { folderName, samePath } from './format'
+import { refreshDesktopStatus, runPendingLaunchers } from './launchers'
 
 // ===================================================================== feedback
 
@@ -77,7 +78,7 @@ function rememberActive(id: string | null): void {
 }
 
 /** Resolve once the shell has printed its first prompt (or give up after a while). */
-function waitForReady(id: string, timeout = 10000): Promise<SessionInfo | null> {
+export function waitForReady(id: string, timeout = 10000): Promise<SessionInfo | null> {
   return new Promise((resolve) => {
     const check = (): SessionInfo | null | undefined => {
       const s = get().sessions[id]
@@ -133,8 +134,13 @@ export async function boot(): Promise<void> {
   ])
   set({ info, settings, library })
   applyChrome(settings)
+  void refreshDesktopStatus()
   await refreshArchive()
 
+  api.launchers.onPending(() => {
+    // Before boot finishes, the queue is taken below instead.
+    if (get().ready) void runPendingLaunchers()
+  })
   for (const s of sessions) upsertSessionLocal(s)
   let saved: string | null = null
   try {
@@ -144,8 +150,10 @@ export async function boot(): Promise<void> {
   }
   const active = sessions.find((s) => s.id === saved)?.id ?? sessions[sessions.length - 1]?.id ?? null
   set({ ready: true, activeId: active })
-  if (!sessions.length) await newSession()
-  else focusActive()
+  // Started from a desktop shortcut: its tab is the one to show, so no extra blank session.
+  const launched = await runPendingLaunchers()
+  if (!sessions.length && !launched) await newSession()
+  else if (!launched) focusActive()
   reportStartupCheck(info)
 }
 

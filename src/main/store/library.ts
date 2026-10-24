@@ -1,10 +1,11 @@
 import { join, basename } from 'node:path'
-import { DEFAULT_LIBRARY, LIMITS } from '@shared/defaults'
-import type { FavoriteFolder, Library, RecentFolder, Snippet, TagDef } from '@shared/types'
+import { DEFAULT_LIBRARY, LAUNCHER_MOODS, LIMITS } from '@shared/defaults'
+import type { FavoriteFolder, Launcher, Library, RecentFolder, Snippet, TagDef } from '@shared/types'
 import { JsonFile } from './jsonFile'
 import { arr, groupNames, isObject, newId, num, oneOf, pathKey, str } from './util'
 
 const COLOR_RE = /^#[0-9a-f]{6}$/i
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const color = (v: unknown): string | undefined => (typeof v === 'string' && COLOR_RE.test(v) ? v : undefined)
 
 function normFavorite(v: unknown): FavoriteFolder | null {
@@ -34,6 +35,31 @@ function normSnippet(v: unknown): Snippet | null {
     shell: oneOf(v.shell, ['any', 'cmd', 'powershell'] as const, 'any'),
     mode: oneOf(v.mode, ['run', 'insert', 'copy'] as const, 'run'),
     group: str(v.group, '', LIMITS.groupNameLength).trim() || undefined,
+    createdAt: num(v.createdAt, now),
+    updatedAt: num(v.updatedAt, now),
+    uses: Math.max(0, Math.round(num(v.uses, 0))),
+    lastUsedAt: typeof v.lastUsedAt === 'number' ? v.lastUsedAt : undefined
+  }
+}
+
+function normLauncher(v: unknown): Launcher | null {
+  if (!isObject(v)) return null
+  const folder = str(v.folder, '', 1024).trim()
+  if (!folder) return null
+  const now = Date.now()
+  const id = str(v.id)
+  return {
+    // Desktop shortcuts pass the id on the command line, and its files are named after it: keep it a UUID.
+    id: UUID_RE.test(id) ? id : newId(),
+    name: str(v.name, '', LIMITS.nameLength).trim() || folderName(folder),
+    color: color(v.color) ?? LAUNCHER_MOODS[0].color,
+    folder,
+    shell: oneOf(v.shell, ['cmd', 'powershell', 'pwsh'] as const, 'powershell'),
+    script: str(v.script, '', LIMITS.snippetCommandLength).replace(/\s+$/, ''),
+    mode: oneOf(v.mode, ['run', 'insert'] as const, 'run'),
+    target: oneOf(v.target, ['app', 'window'] as const, 'app'),
+    pinned: typeof v.pinned === 'boolean' ? v.pinned : true,
+    desktopLink: str(v.desktopLink, '', 1024) || undefined,
     createdAt: num(v.createdAt, now),
     updatedAt: num(v.updatedAt, now),
     uses: Math.max(0, Math.round(num(v.uses, 0))),
@@ -88,6 +114,10 @@ function normalize(raw: unknown): Library {
       arr(r.snippets).map(normSnippet).filter((s): s is Snippet => !!s),
       (s) => s.id
     ),
+    launchers: dedupeBy(
+      arr(r.launchers).map(normLauncher).filter((l): l is Launcher => !!l),
+      (l) => l.id
+    ).slice(0, LIMITS.launchers),
     tags: dedupeBy(
       arr(r.tags).map(normTag).filter((t): t is TagDef => !!t),
       (t) => t.name
@@ -220,6 +250,50 @@ export class LibraryStore {
     this.commit()
   }
 
+  // ---- launchers (title bar shortcuts) ----
+
+  getLauncher(id: string): Launcher | undefined {
+    return this.data.launchers.find((l) => l.id === id)
+  }
+
+  upsertLauncher(input: Partial<Launcher>): Launcher | null {
+    const existing = input.id ? this.getLauncher(input.id) : undefined
+    if (!existing && this.data.launchers.length >= LIMITS.launchers) return null
+    // The desktop link is only ever set by the main process (see setLauncherDesktopLink).
+    const { desktopLink: _ignored, ...patch } = input
+    const merged = normLauncher({ ...(existing ?? {}), ...patch, desktopLink: existing?.desktopLink, updatedAt: Date.now() })
+    if (!merged) return null
+    if (existing) Object.assign(existing, merged)
+    else this.data.launchers.push(merged)
+    this.commit()
+    return existing ?? merged
+  }
+
+  removeLauncher(id: string): void {
+    this.data.launchers = this.data.launchers.filter((l) => l.id !== id)
+    this.commit()
+  }
+
+  reorderLaunchers(ids: string[]): void {
+    this.data.launchers = reorder(this.data.launchers, ids)
+    this.commit()
+  }
+
+  launcherUsed(id: string): void {
+    const l = this.getLauncher(id)
+    if (!l) return
+    l.uses += 1
+    l.lastUsedAt = Date.now()
+    this.commit()
+  }
+
+  setLauncherDesktopLink(id: string, path: string | undefined): void {
+    const l = this.getLauncher(id)
+    if (!l || l.desktopLink === path) return
+    l.desktopLink = path
+    this.commit()
+  }
+
   // ---- tags ----
 
   upsertTag(tag: TagDef, previousName?: string): { renamedFrom?: string; name: string } | null {
@@ -292,13 +366,16 @@ export class LibraryStore {
 
   exportData(): object {
     const { favorites, snippets, tags, snippetGroupOrder } = this.data
-    return { app: 'pro-terminal', version: 1, exportedAt: new Date().toISOString(), favorites, snippets, tags, snippetGroupOrder }
+    // Desktop shortcut files belong to this PC, so they are not exported.
+    const launchers = this.data.launchers.map(({ desktopLink: _local, ...l }) => l)
+    return { app: 'pro-terminal', version: 1, exportedAt: new Date().toISOString(), favorites, snippets, launchers, tags, snippetGroupOrder }
   }
 
-  importData(raw: unknown): { favorites: number; snippets: number } {
+  importData(raw: unknown): { favorites: number; snippets: number; launchers: number } {
     const incoming = normalize(raw)
     let favs = 0
     let snips = 0
+    let launchers = 0
     for (const f of incoming.favorites) {
       if (!this.data.favorites.some((x) => pathKey(x.path) === pathKey(f.path))) {
         this.data.favorites.push({ ...f, id: newId() })
@@ -311,6 +388,13 @@ export class LibraryStore {
         snips++
       }
     }
+    for (const l of incoming.launchers) {
+      if (this.data.launchers.length >= LIMITS.launchers) break
+      if (!this.data.launchers.some((x) => x.name === l.name && pathKey(x.folder) === pathKey(l.folder) && x.script === l.script)) {
+        this.data.launchers.push({ ...l, id: newId(), desktopLink: undefined, uses: 0, lastUsedAt: undefined })
+        launchers++
+      }
+    }
     for (const t of incoming.tags) {
       if (!this.data.tags.some((x) => x.name === t.name)) this.data.tags.push(t)
     }
@@ -319,7 +403,7 @@ export class LibraryStore {
       if (!this.data.snippetGroupOrder.includes(g) && this.data.snippetGroupOrder.length < LIMITS.snippetGroups) this.data.snippetGroupOrder.push(g)
     }
     this.commit()
-    return { favorites: favs, snippets: snips }
+    return { favorites: favs, snippets: snips, launchers }
   }
 
   flush(): void {

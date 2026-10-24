@@ -115,6 +115,36 @@ export interface Snippet {
   lastUsedAt?: number
 }
 
+/** What a shortcut does with its script once the shell is ready: press Enter, or only type it. */
+export type LauncherMode = 'run' | 'insert'
+/** Where the desktop shortcut opens: a tab in Pro Terminal, or a standalone console window. */
+export type LauncherTarget = 'app' | 'window'
+
+/** A one-click shortcut: a shell opened in a folder, optionally running a script. Shown in the title bar. */
+export interface Launcher {
+  id: string
+  name: string
+  /** Accent the shortcut's icon is tinted with. */
+  color: string
+  folder: string
+  shell: ShellId
+  /** Typed exactly as saved; may be empty (just open the folder). */
+  script: string
+  mode: LauncherMode
+  target: LauncherTarget
+  /** Shown in the title bar dock (otherwise only in the shortcuts menu). */
+  pinned: boolean
+  /** The .lnk file created on the desktop for this shortcut, if any. */
+  desktopLink?: string
+  createdAt: number
+  updatedAt: number
+  uses: number
+  lastUsedAt?: number
+}
+
+/** Icon images (PNG, base64) by pixel size, rendered by the renderer for a desktop shortcut. */
+export type IconImages = { size: number; png: string }[]
+
 /** How a snippet group looks when the app starts. */
 export type GroupStartState = 'expanded' | 'collapsed' | 'remember'
 
@@ -126,6 +156,7 @@ export interface TagDef {
 export interface Library {
   favorites: FavoriteFolder[]
   snippets: Snippet[]
+  launchers: Launcher[]
   tags: TagDef[]
   recentFolders: RecentFolder[]
   /** Last values typed for snippet variables, keyed by variable name. */

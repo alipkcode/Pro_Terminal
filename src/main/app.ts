@@ -85,7 +85,9 @@ export function startApp(dataDir: string): BrowserWindow {
     void shutdown()
   })
 
+  // index.ts has already queued any shortcut ids from this start; the renderer takes them.
   app.on('second-instance', () => {
+    send(IPC.evLaunchersPending)
     const w = getWindow()
     if (!w) return
     if (w.isMinimized()) w.restore()

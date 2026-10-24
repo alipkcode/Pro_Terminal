@@ -5,6 +5,7 @@ import { formatReport, type HealthCheck, type HealthReport, type SplashAction, t
 import { CHECK_COUNT, isFirstRun, markRunning, pruneCorruptBackups, runChecks } from './health/checks'
 import { setLastReport } from './health/report'
 import { Splash } from './health/splash'
+import { queueLaunchersFromArgv } from './launchers'
 import { isObject } from './store/util'
 
 app.setAppUserModelId('com.alipkcode.proterminal')
@@ -62,7 +63,12 @@ async function main(): Promise<void> {
   const dataDir = join(app.getPath('userData'), 'data')
   const firstRun = isFirstRun(dataDir)
   const splash = new Splash(prefersDark(dataDir))
-  app.on('second-instance', () => splash.focus())
+  // Desktop shortcuts pass --launcher=<id>; ids are queued until the renderer takes them (see app.ts).
+  queueLaunchersFromArgv(process.argv)
+  app.on('second-instance', (_e, argv) => {
+    queueLaunchersFromArgv(argv)
+    splash.focus()
+  })
   // Closing the splash before the app opens means the user changed their mind.
   let launched = false
   splash.win.once('closed', () => {
