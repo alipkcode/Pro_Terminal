@@ -20,7 +20,7 @@
 
 [**⬇ Download for Windows**](https://github.com/alipkcode/Pro_Terminal/releases/latest) ·
 [Features](#-features) ·
-[Shortcuts](#%EF%B8%8F-keyboard-shortcuts) ·
+[Keyboard](#%EF%B8%8F-keyboard-shortcuts) ·
 [Build from source](#-build-from-source) ·
 [Changelog](CHANGELOG.md) ·
 [Discussions](https://github.com/alipkcode/Pro_Terminal/discussions)
@@ -102,7 +102,18 @@ Each snippet is set to **Run** (types it and presses Enter), **Insert** (types i
 | `{{date}}` / `{{time}}` | Today's date / the current time |
 
 Group snippets, **drag groups to reorder** them, and choose whether each group starts expanded, collapsed
-or as you last left it (*new in 1.2.0*).
+or as you last left it.
+
+### ⚡ Shortcuts and folder actions (*new in 1.3.0*)
+
+- **Shortcuts**: a folder, a shell and an optional script, one click away in the title bar. Add any of them
+  to the desktop with the app icon recolored in its own color mood.
+- **Folder actions**: save a script such as *"remove the dots from every name"* as a small `.exe` with its
+  own icon. Drop it into any folder and open it there. It shows what it will do and asks first, then runs in
+  that folder only or in every subfolder (deepest first). It runs in Pro Terminal, or in a console window on a
+  PC without it.
+- **17 ready-made folder scripts** under *Snippets › Folder actions*: clean up names, sort files by type,
+  delete empty folders, extract zips, `git pull` every repository, and more.
 
 <div align="center">
 <img src=".github/assets/screenshots/snippets.png" alt="Saved commands panel with groups, run/insert/copy modes and placeholders" width="49%">
@@ -139,9 +150,12 @@ offers **Try again**, **Open data folder** and **Copy report**. The latest repor
 
 ## 📦 Install
 
-1. Download **`Pro-Terminal-Setup-1.2.0.exe`** from the [latest release](https://github.com/alipkcode/Pro_Terminal/releases/latest).
+1. Download **`Pro-Terminal-Setup-1.3.0.exe`** from the [latest release](https://github.com/alipkcode/Pro_Terminal/releases/latest).
 2. Run it. It installs for your Windows user (**no admin rights needed**), lets you choose the folder and
    adds **Desktop** and **Start menu** shortcuts.
+
+**Updating:** run the new installer. It upgrades the installed copy in place and keeps your settings, sessions,
+favorites and snippets.
 
 > [!NOTE]
 > The installer isn't code-signed yet, so Windows SmartScreen may show *"Windows protected your PC"*.
@@ -187,6 +201,10 @@ npm run dev
 | `npm run dist` | Windows installer (NSIS) in `dist/` |
 | `npm run dist:dir` | Unpacked app in `dist/win-unpacked/` |
 | `npm run icons` | Regenerate `icon.ico`/`icon.png` and installer art from `resources/*.svg` |
+
+To build the installer without typing anything, double-click **`build-setup.bat`**. It installs the
+dependencies when needed, checks the code, and builds `dist\Pro-Terminal-Setup-<version>.exe`. That file
+installs Pro Terminal fresh or upgrades an existing installation.
 
 Data lives in `%APPDATA%\Pro Terminal\data`. Set `PRO_TERMINAL_USER_DATA` to another folder to run a
 separate profile (handy for testing).
@@ -258,6 +276,7 @@ them.
 - [x] Real CMD / PowerShell sessions, archive, favorites, snippets, palette
 - [x] Installer and start-up health check
 - [x] Reorderable snippet groups with start states
+- [x] Shortcuts, desktop shortcuts and folder actions
 - [ ] Split panes
 - [ ] WSL and Git Bash sessions
 - [ ] Auto-update

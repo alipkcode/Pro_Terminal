@@ -6,6 +6,11 @@ All notable changes to Pro Terminal are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-24
+
+One-click shortcuts and folder actions. Installing this version over 1.2.0 upgrades it in place and keeps your
+settings, sessions, favorites and snippets.
+
 ### Added
 - **Shortcuts.** Save a folder, a shell (CMD, Windows PowerShell or PowerShell 7) and an optional script as a
   one-click shortcut. Choose whether it runs the script or only types it, and give it a name and a color mood.
@@ -31,6 +36,8 @@ All notable changes to Pro Terminal are documented here. The format follows
   are kept), dots or underscores to spaces, tidy spaces, find and replace, prefix or suffix, Title Case, lowercase
   extensions, sort files into folders by type, delete empty folders or junk files, extract every zip, `git pull`
   or `git status` in every repository, and save or copy a list of the contents.
+- **`build-setup.bat`** for building from source: double-click it to check the code and build the installer into
+  `dist\`, with its size and SHA-256.
 
 ### Changed
 - The keyboard-shortcuts section in Settings is now called *Keyboard*, so it isn't confused with the new shortcuts.
@@ -81,4 +88,6 @@ The first public release. It includes everything from the development versions b
 - Shell integration: exit-code marks, command history, and jumping between commands.
 - Command palette, 10 terminal themes, light, dark and system app themes, and Mica or Acrylic backgrounds.
 
+[Unreleased]: https://github.com/alipkcode/Pro_Terminal/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/alipkcode/Pro_Terminal/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/alipkcode/Pro_Terminal/releases/tag/v1.2.0

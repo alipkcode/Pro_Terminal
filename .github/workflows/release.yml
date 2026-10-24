@@ -30,6 +30,8 @@ jobs:
           if ($pkg -ne '${{ inputs.version }}') { throw "package.json is $pkg, not ${{ inputs.version }}" }
 
       - run: npm ci
+      # Electron downloads its binaries on first use, not on install; electron-builder needs them.
+      - run: node -e "require('electron')"
       - run: npm run typecheck
       - run: npm run dist -- --publish never
 
