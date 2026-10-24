@@ -54,7 +54,8 @@ export function handleGlobalKey(e: KeyboardEvent): boolean {
     state.favoriteEditor ||
     state.quitRequest ||
     state.launcherEditor ||
-    state.launcherManager
+    state.launcherManager ||
+    state.actionQueue.length > 0
   )
 
   if (e.key === 'F1' || (ctrl && shift && code === 'KeyP')) {

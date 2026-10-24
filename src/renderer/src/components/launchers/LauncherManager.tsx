@@ -1,9 +1,9 @@
 import { AnimatePresence, Reorder } from 'motion/react'
-import { Ellipsis, GripVertical, Keyboard, LayoutGrid, Monitor, MonitorCheck, Pin, PinOff, Play, Plus } from 'lucide-react'
+import { Download, Ellipsis, FolderTree, GripVertical, Keyboard, LayoutGrid, Monitor, MonitorCheck, Pin, PinOff, Play, Plus, Wand2, Zap } from 'lucide-react'
 import type { Launcher } from '@shared/types'
 import { get, set, useApp } from '@/store/app'
 import { focusActive } from '@/lib/actions'
-import { addToDesktop, openLauncherEditor, removeFromDesktop, reorderLaunchers, runLauncher, togglePinned } from '@/lib/launchers'
+import { addToDesktop, openActionEditor, openLauncherEditor, removeFromDesktop, reorderLaunchers, runLauncher, saveActionFile, togglePinned } from '@/lib/launchers'
 import { relativeTime, shortPath } from '@/lib/format'
 import { SHELL_META } from '@/lib/shell'
 import { Modal } from '../ui/Modal'
@@ -11,14 +11,32 @@ import { LauncherIcon, ShellIcon } from '../icons'
 import { showContextMenu } from '../ui/ContextMenu'
 import { launcherMenu } from './menu'
 
+function ScriptLine({ l }: { l: Launcher }) {
+  const all = l.script.trim().split('\n')
+  const first = all.find((x) => x.trim() && !/^\s*(#|rem\b|::)/i.test(x)) ?? all[0]
+  const more = all.length - 1
+  return (
+    <div className="lm-row__script mono">
+      {first ? (
+        <>
+          {l.mode === 'run' ? <Play size={10} /> : <Keyboard size={10} />}
+          <span>{first.trim()}</span>
+          {more > 0 && <span className="lm-row__more">+{more} line{more === 1 ? '' : 's'}</span>}
+        </>
+      ) : (
+        <span className="muted">Opens the folder — no script</span>
+      )}
+    </div>
+  )
+}
+
 function ManagerRow({ l, onDesktop, close }: { l: Launcher; onDesktop: boolean; close: () => void }) {
-  const firstLine = l.script.trim().split('\n')[0]
-  const more = l.script.trim().split('\n').length - 1
+  const action = l.kind === 'action'
   return (
     <Reorder.Item
       value={l.id}
       as="div"
-      className="lm-row"
+      className={`lm-row ${action ? 'lm-row--action' : ''}`}
       style={{ ['--lc' as string]: l.color }}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -32,6 +50,7 @@ function ManagerRow({ l, onDesktop, close }: { l: Launcher; onDesktop: boolean; 
       </span>
       <span className="lm-row__icon">
         <LauncherIcon color={l.color} size={40} />
+        {action && <span className="lm-row__badge">EXE</span>}
       </span>
       <div className="lm-row__body">
         <div className="lm-row__name">{l.name}</div>
@@ -40,43 +59,57 @@ function ManagerRow({ l, onDesktop, close }: { l: Launcher; onDesktop: boolean; 
             <ShellIcon shell={l.shell} size={11} />
             {SHELL_META[l.shell].short}
           </span>
-          <span className="mono lm-row__path" data-tip={l.folder}>
-            {shortPath(l.folder, 44)}
-          </span>
-        </div>
-        <div className="lm-row__script mono">
-          {firstLine ? (
+          {action ? (
             <>
-              {l.mode === 'run' ? <Play size={10} /> : <Keyboard size={10} />}
-              <span>{firstLine}</span>
-              {more > 0 && <span className="lm-row__more">+{more} line{more === 1 ? '' : 's'}</span>}
+              <span className={`lm-tag ${l.recursive ? 'lm-tag--accent' : ''}`}>
+                {l.recursive && <FolderTree size={10} />}
+                {l.recursive ? 'All subfolders' : 'Its folder'}
+              </span>
+              {l.description && (
+                <span className="lm-row__path" data-tip={l.description}>
+                  {l.description}
+                </span>
+              )}
             </>
           ) : (
-            <span className="muted">Opens the folder — no script</span>
+            <span className="mono lm-row__path" data-tip={l.folder}>
+              {shortPath(l.folder, 44)}
+            </span>
           )}
         </div>
+        <ScriptLine l={l} />
       </div>
-      <div className="lm-row__stats">{l.uses > 0 ? `${l.uses}× · ${relativeTime(l.lastUsedAt ?? l.updatedAt)}` : 'not used yet'}</div>
+      <div className="lm-row__stats">{l.uses > 0 ? `${l.uses}× · ${relativeTime(l.lastUsedAt ?? l.updatedAt)}` : action ? 'not run yet' : 'not used yet'}</div>
       <div className="lm-row__actions">
-        <button className={`lm-toggle ${l.pinned ? 'lm-toggle--on' : ''}`} onClick={() => togglePinned(l)} data-tip={l.pinned ? 'In the top bar — click to hide' : 'Show in the top bar'}>
-          {l.pinned ? <Pin size={13} /> : <PinOff size={13} />}
-        </button>
-        <button
-          className={`lm-toggle ${onDesktop ? 'lm-toggle--on' : ''}`}
-          onClick={() => void (onDesktop ? removeFromDesktop(l) : addToDesktop(l))}
-          data-tip={onDesktop ? `On the desktop (${l.target === 'window' ? 'classic window' : 'Pro Terminal tab'}) — click to remove` : 'Add to desktop'}
-        >
-          {onDesktop ? <MonitorCheck size={13} /> : <Monitor size={13} />}
-        </button>
+        {action ? (
+          <button className="lm-toggle" onClick={() => void saveActionFile(l, 'desktop')} data-tip="Save the file to the desktop">
+            <Download size={13} />
+          </button>
+        ) : (
+          <>
+            <button className={`lm-toggle ${l.pinned ? 'lm-toggle--on' : ''}`} onClick={() => togglePinned(l)} data-tip={l.pinned ? 'In the top bar — click to hide' : 'Show in the top bar'}>
+              {l.pinned ? <Pin size={13} /> : <PinOff size={13} />}
+            </button>
+            <button
+              className={`lm-toggle ${onDesktop ? 'lm-toggle--on' : ''}`}
+              onClick={() => void (onDesktop ? removeFromDesktop(l) : addToDesktop(l))}
+              data-tip={onDesktop ? `On the desktop (${l.target === 'window' ? 'classic window' : 'Pro Terminal tab'}) — click to remove` : 'Add to desktop'}
+            >
+              {onDesktop ? <MonitorCheck size={13} /> : <Monitor size={13} />}
+            </button>
+          </>
+        )}
         <button
           className="btn btn--sm lm-run"
           onClick={() => {
-            close()
+            // A folder action asks for a folder and a confirmation on top of the manager.
+            if (!action) close()
             void runLauncher(l)
           }}
+          data-tip={action ? 'Pick a folder to run it in' : undefined}
         >
           <Play size={12} />
-          Open
+          {action ? 'Run…' : 'Open'}
         </button>
         <button className="icon-btn icon-btn--sm" onClick={(e) => showContextMenu(e, launcherMenu(l, { onAction: close }))} aria-label="More">
           <Ellipsis size={14} />
@@ -94,10 +127,22 @@ export function LauncherManager() {
     set({ launcherManager: false })
     focusActive()
   }
-  // The wizard and context menus open on top of the manager; Escape should close those first.
-  const closeUnlessCovered = () => !get().launcherEditor && !get().contextMenu && close()
-  const pinnedCount = launchers.filter((l) => l.pinned).length
-  const desktopCount = launchers.filter((l) => onDesktop.includes(l.id)).length
+  // The wizard, confirmations and context menus open on top of the manager; Escape should close those first.
+  const closeUnlessCovered = () => !get().launcherEditor && !get().contextMenu && !get().actionQueue.length && close()
+  const shortcuts = launchers.filter((l) => l.kind !== 'action')
+  const actions = launchers.filter((l) => l.kind === 'action')
+  const pinnedCount = shortcuts.filter((l) => l.pinned).length
+  const desktopCount = shortcuts.filter((l) => onDesktop.includes(l.id)).length
+  const ids = (list: Launcher[]) => list.map((l) => l.id)
+
+  const subtitle = launchers.length
+    ? [
+        `${shortcuts.length} shortcut${shortcuts.length === 1 ? '' : 's'}`,
+        `${pinnedCount} in the top bar`,
+        `${desktopCount} on the desktop`,
+        ...(actions.length ? [`${actions.length} folder action${actions.length === 1 ? '' : 's'}`] : [])
+      ].join(' · ')
+    : 'One click opens a shell in a folder and runs your script'
 
   return (
     <Modal
@@ -106,11 +151,7 @@ export function LauncherManager() {
       width={760}
       icon={<LayoutGrid size={18} />}
       title="Shortcuts"
-      subtitle={
-        launchers.length
-          ? `${launchers.length} shortcut${launchers.length === 1 ? '' : 's'} · ${pinnedCount} in the top bar · ${desktopCount} on the desktop`
-          : 'One click opens a shell in a folder and runs your script'
-      }
+      subtitle={subtitle}
       className="launcher-manager-modal"
       footer={
         <>
@@ -118,6 +159,10 @@ export function LauncherManager() {
           <span style={{ flex: 1 }} />
           <button className="btn btn--ghost" onClick={close}>
             Done
+          </button>
+          <button className="btn" onClick={() => openActionEditor()}>
+            <Wand2 size={14} />
+            New folder action
           </button>
           <button className="btn btn--primary" onClick={() => openLauncherEditor()}>
             <Plus size={14} />
@@ -143,13 +188,56 @@ export function LauncherManager() {
           </span>
         </button>
       ) : (
-        <Reorder.Group axis="y" values={launchers.map((l) => l.id)} onReorder={reorderLaunchers} as="div" className="lm-list">
-          <AnimatePresence initial={false}>
-            {launchers.map((l) => (
-              <ManagerRow key={l.id} l={l} onDesktop={onDesktop.includes(l.id)} close={close} />
-            ))}
-          </AnimatePresence>
-        </Reorder.Group>
+        <>
+          {shortcuts.length > 0 && (
+            <>
+              <div className="lm-section">
+                <Zap size={12} />
+                Shortcuts
+                <span>a folder and a script, one click away</span>
+              </div>
+              <Reorder.Group axis="y" values={ids(shortcuts)} onReorder={(next) => reorderLaunchers([...next, ...ids(actions)])} as="div" className="lm-list">
+                <AnimatePresence initial={false}>
+                  {shortcuts.map((l) => (
+                    <ManagerRow key={l.id} l={l} onDesktop={onDesktop.includes(l.id)} close={close} />
+                  ))}
+                </AnimatePresence>
+              </Reorder.Group>
+            </>
+          )}
+
+          <div className="lm-section">
+            <Wand2 size={12} />
+            Folder actions
+            <span>a script saved as a file that runs in the folder it's opened from</span>
+          </div>
+          {actions.length > 0 ? (
+            <Reorder.Group axis="y" values={ids(actions)} onReorder={(next) => reorderLaunchers([...ids(shortcuts), ...next])} as="div" className="lm-list">
+              <AnimatePresence initial={false}>
+                {actions.map((l) => (
+                  <ManagerRow key={l.id} l={l} onDesktop={false} close={close} />
+                ))}
+              </AnimatePresence>
+            </Reorder.Group>
+          ) : (
+            <button className="lm-action-intro" onClick={() => openActionEditor()}>
+              <span className="lm-action-intro__icon">
+                <LauncherIcon color="#34d399" size={34} />
+                <span className="lm-row__badge">EXE</span>
+              </span>
+              <span className="lm-action-intro__text">
+                <span className="lm-action-intro__title">Make a folder action</span>
+                <span className="lm-action-intro__sub">
+                  For example “remove the dashes from every name”. Save it as a file, drop it into any folder and open it there — it asks, then runs.
+                </span>
+              </span>
+              <span className="btn btn--sm">
+                <Wand2 size={13} />
+                Create
+              </span>
+            </button>
+          )}
+        </>
       )}
     </Modal>
   )

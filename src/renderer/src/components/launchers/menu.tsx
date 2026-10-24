@@ -1,8 +1,10 @@
-import { Copy, CornerDownLeft, FolderOpen, Monitor, MonitorX, Pencil, Pin, PinOff, Play, Trash2 } from 'lucide-react'
+import { Copy, CornerDownLeft, Download, FolderInput, FolderOpen, Monitor, MonitorX, Pencil, Pin, PinOff, Play, Save, Trash2 } from 'lucide-react'
 import type { Launcher } from '@shared/types'
 import { api } from '@/api'
 import { get, type ContextMenuItem } from '@/store/app'
-import { addToDesktop, deleteLauncher, duplicateLauncher, openLauncherEditor, removeFromDesktop, runLauncher, togglePinned } from '@/lib/launchers'
+import { activeSession } from '@/lib/actions'
+import { addToDesktop, deleteLauncher, duplicateLauncher, openLauncherEditor, removeFromDesktop, runLauncher, saveActionFile, togglePinned } from '@/lib/launchers'
+import { folderName } from '@/lib/format'
 import { FAMILY_LABEL, familyOf, SHELL_META } from '@/lib/shell'
 
 export const MODE_LABEL = { run: 'Runs', insert: 'Types' } as const
@@ -18,6 +20,7 @@ export function launcherMenu(l: Launcher, extra: { onAction?: () => void } = {})
     extra.onAction?.()
     fn()
   }
+  if (l.kind === 'action') return actionMenu(l, done)
   const onDesktop = get().launchersOnDesktop.includes(l.id)
   return [
     { label: 'Open in a new tab', icon: <Play size={14} />, run: done(() => void runLauncher(l)) },
@@ -30,6 +33,24 @@ export function launcherMenu(l: Launcher, extra: { onAction?: () => void } = {})
     onDesktop
       ? { label: 'Remove from desktop', icon: <MonitorX size={14} />, run: () => void removeFromDesktop(l) }
       : { label: 'Add to desktop', icon: <Monitor size={14} />, run: () => void addToDesktop(l) },
+    { separator: true },
+    { label: 'Delete', icon: <Trash2 size={14} />, danger: true, run: () => void deleteLauncher(l) }
+  ]
+}
+
+/** Folder actions: run somewhere (always confirmed), save the program file, edit. */
+function actionMenu(l: Launcher, done: (fn: () => void) => () => void): ContextMenuItem[] {
+  const s = activeSession()
+  // Running opens a confirmation over the manager, so these keep it open.
+  return [
+    { label: 'Run in a folder…', icon: <FolderInput size={14} />, run: () => void runLauncher(l) },
+    ...(s ? [{ label: 'Run in the current folder', icon: <CornerDownLeft size={14} />, hint: folderName(s.cwd), run: () => void runLauncher(l, { here: true }) }] : []),
+    { separator: true },
+    { label: 'Save file to desktop', icon: <Download size={14} />, run: () => void saveActionFile(l, 'desktop') },
+    { label: 'Save file as…', icon: <Save size={14} />, run: () => void saveActionFile(l, 'choose') },
+    { separator: true },
+    { label: 'Edit…', icon: <Pencil size={14} />, run: done(() => openLauncherEditor(l)) },
+    { label: 'Duplicate…', icon: <Copy size={14} />, run: done(() => duplicateLauncher(l)) },
     { separator: true },
     { label: 'Delete', icon: <Trash2 size={14} />, danger: true, run: () => void deleteLauncher(l) }
   ]

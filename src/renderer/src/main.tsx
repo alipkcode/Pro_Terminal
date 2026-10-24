@@ -8,6 +8,7 @@ import './styles/terminal.css'
 import './styles/overlays.css'
 import './styles/archive.css'
 import './styles/launchers.css'
+import './styles/actions.css'
 import { App } from './App'
 
 createRoot(document.getElementById('root')!).render(<App />)

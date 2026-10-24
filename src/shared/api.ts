@@ -1,10 +1,14 @@
 import type {
+  ActionFileError,
+  ActionRequest,
+  ActionSpec,
   AppInfo,
   AppTheme,
   ArchivePatch,
   ArchiveSearchHit,
   ArchiveStats,
   ArchivedSession,
+  BuildActionResult,
   CreateSessionOptions,
   ExecOptions,
   ExecResult,
@@ -89,7 +93,18 @@ export interface PtApi {
     desktopStatus(): Promise<string[]>
     /** Shortcut ids requested from the command line (desktop shortcuts) and not handled yet. */
     takePending(): Promise<string[]>
+    /** Fires for both shortcuts and folder action files opened while the app runs. */
     onPending(cb: () => void): Unsubscribe
+  }
+  actions: {
+    /** Save a folder action as a program: on the desktop, or wherever the user picks in a save dialog. */
+    build(id: string, icons: IconImages, dest: 'desktop' | 'choose'): Promise<BuildActionResult>
+    /** Show a saved action file in Explorer. */
+    reveal(path: string): Promise<void>
+    /** Prepare a run in `folder`; returns the line to type into a session of the action's shell. */
+    prepareRun(action: ActionSpec, folder: string, file?: string): Promise<{ ok: true; command: string } | { ok: false; error: string }>
+    /** Folder action files opened (from Explorer) and not handled yet. */
+    takePending(): Promise<{ requests: ActionRequest[]; errors: ActionFileError[] }>
   }
   settings: {
     get(): Promise<Settings>

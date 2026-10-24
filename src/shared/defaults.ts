@@ -43,7 +43,8 @@ export const DEFAULT_LIBRARY: Library = {
   recentFolders: [],
   snippetVars: {},
   snippetGroupOrder: [],
-  snippetGroupsCollapsed: []
+  snippetGroupsCollapsed: [],
+  seededPacks: []
 }
 
 /** Colors offered for tags, favorites and other user-colored items. */
@@ -66,7 +67,8 @@ export const LIMITS = {
   nameLength: 120,
   groupNameLength: 60,
   snippetGroups: 500,
-  launchers: 200
+  launchers: 200,
+  descriptionLength: 500
 }
 
 /** Color moods offered for shortcut icons; the first matches the app icon. */

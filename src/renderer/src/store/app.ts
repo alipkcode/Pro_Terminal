@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { ReactNode } from 'react'
 import { DEFAULT_LIBRARY, DEFAULT_SETTINGS } from '@shared/defaults'
-import type { AppInfo, ArchivedSession, FavoriteFolder, Launcher, Library, QuitRequest, SessionInfo, Settings, Snippet } from '@shared/types'
+import type { ActionRequest, AppInfo, ArchivedSession, FavoriteFolder, Launcher, Library, QuitRequest, SessionInfo, Settings, Snippet } from '@shared/types'
 import type { SnippetVar } from '@/lib/snippets'
 
 export type PanelId = 'sessions' | 'folders' | 'snippets'
@@ -84,6 +84,8 @@ interface State {
   launcherManager: boolean
   /** Shortcuts whose desktop shortcut file exists (checked when the shortcuts UI opens). */
   launchersOnDesktop: string[]
+  /** Folder actions waiting for the user to confirm; the first one is shown. */
+  actionQueue: ActionRequest[]
   varsPrompt: VarsPrompt | null
   quitRequest: QuitRequest | null
   contextMenu: ContextMenuState | null
@@ -114,6 +116,7 @@ export const useApp = create<State>()(() => ({
   launcherEditor: null,
   launcherManager: false,
   launchersOnDesktop: [],
+  actionQueue: [],
   varsPrompt: null,
   quitRequest: null,
   contextMenu: null,

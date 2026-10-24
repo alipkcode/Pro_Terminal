@@ -74,6 +74,12 @@ const api: PtApi = {
     takePending: () => invoke(IPC.launchersTakePending),
     onPending: (cb) => subscribe(IPC.evLaunchersPending, cb)
   },
+  actions: {
+    build: (id, icons, dest) => invoke(IPC.actionsBuild, id, icons, dest),
+    reveal: (path) => invoke(IPC.actionsReveal, path),
+    prepareRun: (action, folder, file) => invoke(IPC.actionsPrepareRun, action, folder, file),
+    takePending: () => invoke(IPC.actionsTakePending)
+  },
   settings: {
     get: () => invoke(IPC.settingsGet),
     set: (patch) => invoke(IPC.settingsSet, patch),

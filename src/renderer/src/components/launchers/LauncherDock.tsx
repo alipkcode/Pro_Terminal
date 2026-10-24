@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Keyboard, LayoutGrid, Monitor, Pencil, Pin, PinOff, Play, Plus, Zap } from 'lucide-react'
 import type { Launcher } from '@shared/types'
@@ -51,7 +51,9 @@ function DockChip({ l, index }: { l: Launcher; index: number }) {
 }
 
 export function LauncherDock() {
-  const launchers = useApp((s) => s.library.launchers)
+  const all = useApp((s) => s.library.launchers)
+  // Folder actions live in the manager only: they need a folder picked each time.
+  const launchers = useMemo(() => all.filter((l) => l.kind !== 'action'), [all])
   const onDesktop = useApp((s) => s.launchersOnDesktop)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)

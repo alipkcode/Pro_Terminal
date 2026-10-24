@@ -21,6 +21,7 @@ import {
   Star,
   Sun,
   X,
+  Wand2,
   Zap,
   ZoomIn,
   ZoomOut
@@ -53,7 +54,7 @@ import { fuzzyMatch } from '@/lib/fuzzy'
 import { folderName, samePath, shortPath } from '@/lib/format'
 import { familyOf } from '@/lib/shell'
 import { TERMINAL_THEMES } from '@/terminal/themes'
-import { openLauncherEditor, openLauncherManager, runLauncher } from '@/lib/launchers'
+import { openActionEditor, openLauncherEditor, openLauncherManager, runLauncher } from '@/lib/launchers'
 import { LauncherIcon, ShellIcon } from './icons'
 import { Highlight } from './ui/Controls'
 
@@ -97,6 +98,20 @@ function useItems(): Item[] {
     }
 
     for (const l of library.launchers) {
+      if (l.kind === 'action') {
+        // Asks for a folder (Shift: the current one), then for confirmation.
+        items.push({
+          id: `launcher:${l.id}`,
+          group: 'Shortcuts',
+          title: l.name,
+          subtitle: l.description || `Folder action · ${l.recursive ? 'every subfolder' : 'one folder'}`,
+          icon: <LauncherIcon color={l.color} size={16} />,
+          hint: 'Run…',
+          keywords: `folder action file ${l.description} ${l.script}`,
+          run: (e) => void runLauncher(l, { here: e.shiftKey })
+        })
+        continue
+      }
       items.push({
         id: `launcher:${l.id}`,
         group: 'Shortcuts',
@@ -160,6 +175,7 @@ function useItems(): Item[] {
       }),
       act('new-snippet', 'New snippet…', <Code2 size={14} />, () => openSnippetEditor(), undefined, 'save command'),
       act('new-launcher', 'New shortcut…', <Zap size={14} />, () => openLauncherEditor(), undefined, 'launcher desktop folder script'),
+      act('new-launcher-action', 'New folder action…', <Wand2 size={14} />, () => openActionEditor(), undefined, 'script file program exe rename'),
       act('launchers', 'Manage shortcuts', <Zap size={14} />, openLauncherManager, 'Ctrl+Shift+L', 'launcher desktop'),
       act('archive', 'Open archive', <Archive size={14} />, () => openArchive(), 'Ctrl+Shift+H', 'history closed sessions'),
       act('settings', 'Open settings', <Settings2 size={14} />, openSettings, 'Ctrl+,', 'preferences'),

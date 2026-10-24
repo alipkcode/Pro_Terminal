@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AppWindow, Check, ChevronLeft, ChevronRight, CircleAlert, CornerDownLeft, FolderOpen, Keyboard, Monitor, Pipette, Play, Star, Trash2, Zap } from 'lucide-react'
+import { AppWindow, Check, ChevronLeft, ChevronRight, CircleAlert, CornerDownLeft, FolderOpen, Keyboard, Monitor, Play, Star, Trash2, Zap } from 'lucide-react'
 import { LAUNCHER_MOODS } from '@shared/defaults'
 import type { Launcher, LauncherMode, LauncherTarget, ShellId, ShellInfo } from '@shared/types'
 import { api } from '@/api'
@@ -12,6 +12,7 @@ import { folderName, samePath, shortPath } from '@/lib/format'
 import { Modal } from '../ui/Modal'
 import { Segmented, Switch } from '../ui/Controls'
 import { LauncherIcon, ShellIcon } from '../icons'
+import { MoodPicker } from './MoodPicker'
 
 const STEPS = [
   { title: 'Where', sub: 'Folder & shell' },
@@ -38,7 +39,8 @@ function promptFor(shell: ShellId, folder: string): string {
 }
 
 export function LauncherWizard() {
-  const req = useApp((s) => s.launcherEditor)
+  // Folder actions have their own wizard (ActionWizard).
+  const req = useApp((s) => (s.launcherEditor?.draft.kind === 'action' ? null : s.launcherEditor))
   const shells = useApp((s) => s.info?.shells ?? NO_SHELLS)
   const favorites = useApp((s) => s.library.favorites)
   const onDesktopIds = useApp((s) => s.launchersOnDesktop)
@@ -59,7 +61,6 @@ export function LauncherWizard() {
   const [touched, setTouched] = useState(false)
   const [shake, setShake] = useState(0)
   const [saving, setSaving] = useState(false)
-  const colorInput = useRef<HTMLInputElement>(null)
   const pages = useRef<HTMLDivElement>(null)
 
   const draft = req?.draft
@@ -121,7 +122,7 @@ export function LauncherWizard() {
   const lines = useMemo(() => script.replace(/\r\n?/g, '\n').replace(/\s+$/, '').split('\n'), [script])
   const hasScript = !!script.trim()
   const effectiveTarget: LauncherTarget = mode === 'insert' ? 'app' : target
-  const mood = LAUNCHER_MOODS.find((m) => m.color.toLowerCase() === color.toLowerCase())
+
 
   // Opened from the manager, focus stays in the manager instead of going back to the terminal.
   const refocus = () => {
@@ -479,30 +480,7 @@ export function LauncherWizard() {
                       <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={displayName} maxLength={80} data-autofocus />
                     </label>
 
-                    <div className="field">
-                      <span className="field__label">
-                        Color mood
-                        <span className="field__hint">{mood ? mood.name : 'Custom'}</span>
-                      </span>
-                      <div className="lw-moods">
-                        {LAUNCHER_MOODS.map((m) => (
-                          <button
-                            key={m.color}
-                            type="button"
-                            className={`lw-mood ${m.color.toLowerCase() === color.toLowerCase() ? 'lw-mood--on' : ''}`}
-                            onClick={() => setColor(m.color)}
-                            data-tip={m.name}
-                            aria-label={m.name}
-                          >
-                            <LauncherIcon color={m.color} size={26} />
-                          </button>
-                        ))}
-                        <button type="button" className={`lw-mood lw-mood--custom ${mood ? '' : 'lw-mood--on'}`} onClick={() => colorInput.current?.click()} data-tip="Pick any color">
-                          <Pipette size={14} />
-                          <input ref={colorInput} type="color" value={color} onChange={(e) => setColor(e.target.value)} tabIndex={-1} aria-label="Custom color" />
-                        </button>
-                      </div>
-                    </div>
+                    <MoodPicker color={color} onChange={setColor} />
 
                     <div className="lw-toggles">
                       <div className="lw-toggle">

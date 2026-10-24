@@ -1,4 +1,5 @@
 import { join, basename } from 'node:path'
+import { ACTION_PRESET_GROUP, ACTION_PRESET_PACK, ACTION_PRESETS } from '@shared/actionPresets'
 import { DEFAULT_LIBRARY, LAUNCHER_MOODS, LIMITS } from '@shared/defaults'
 import type { FavoriteFolder, Launcher, Library, RecentFolder, Snippet, TagDef } from '@shared/types'
 import { JsonFile } from './jsonFile'
@@ -44,21 +45,30 @@ function normSnippet(v: unknown): Snippet | null {
 
 function normLauncher(v: unknown): Launcher | null {
   if (!isObject(v)) return null
-  const folder = str(v.folder, '', 1024).trim()
-  if (!folder) return null
+  // Saved before folder actions existed: a shortcut.
+  const kind = oneOf(v.kind, ['shortcut', 'action'] as const, 'shortcut')
+  const action = kind === 'action'
+  const folder = action ? '' : str(v.folder, '', 1024).trim()
+  const script = str(v.script, '', LIMITS.snippetCommandLength).replace(/\s+$/, '')
+  // A shortcut needs a folder to open; a folder action brings no folder, but needs something to run.
+  if (action ? !script.trim() : !folder) return null
   const now = Date.now()
   const id = str(v.id)
   return {
     // Desktop shortcuts pass the id on the command line, and its files are named after it: keep it a UUID.
     id: UUID_RE.test(id) ? id : newId(),
-    name: str(v.name, '', LIMITS.nameLength).trim() || folderName(folder),
+    kind,
+    name: str(v.name, '', LIMITS.nameLength).trim() || (action ? 'Folder action' : folderName(folder)),
+    description: str(v.description, '', LIMITS.descriptionLength).trim(),
     color: color(v.color) ?? LAUNCHER_MOODS[0].color,
     folder,
     shell: oneOf(v.shell, ['cmd', 'powershell', 'pwsh'] as const, 'powershell'),
-    script: str(v.script, '', LIMITS.snippetCommandLength).replace(/\s+$/, ''),
-    mode: oneOf(v.mode, ['run', 'insert'] as const, 'run'),
-    target: oneOf(v.target, ['app', 'window'] as const, 'app'),
-    pinned: typeof v.pinned === 'boolean' ? v.pinned : true,
+    script,
+    // Folder actions always run their script, in whatever folder they are opened from.
+    mode: action ? 'run' : oneOf(v.mode, ['run', 'insert'] as const, 'run'),
+    target: action ? 'app' : oneOf(v.target, ['app', 'window'] as const, 'app'),
+    recursive: action && v.recursive === true,
+    pinned: action ? false : typeof v.pinned === 'boolean' ? v.pinned : true,
     desktopLink: str(v.desktopLink, '', 1024) || undefined,
     createdAt: num(v.createdAt, now),
     updatedAt: num(v.updatedAt, now),
@@ -128,7 +138,8 @@ function normalize(raw: unknown): Library {
     ).slice(0, LIMITS.recentFolders),
     snippetVars: vars,
     snippetGroupOrder: groupNames(r.snippetGroupOrder, LIMITS.groupNameLength, LIMITS.snippetGroups),
-    snippetGroupsCollapsed: groupNames(r.snippetGroupsCollapsed, LIMITS.groupNameLength, LIMITS.snippetGroups)
+    snippetGroupsCollapsed: groupNames(r.snippetGroupsCollapsed, LIMITS.groupNameLength, LIMITS.snippetGroups),
+    seededPacks: groupNames(r.seededPacks, 60, 50)
   }
 }
 
@@ -143,6 +154,30 @@ export class LibraryStore {
 
   constructor(dataDir: string) {
     this.file = new JsonFile(join(dataDir, 'library.json'), DEFAULT_LIBRARY, normalize)
+    this.seedActionPresets()
+  }
+
+  /** Adds the folder-action scripts to the snippets once; presets the user deletes stay deleted. */
+  private seedActionPresets(): void {
+    if (this.data.seededPacks.includes(ACTION_PRESET_PACK)) return
+    const now = Date.now()
+    for (const p of ACTION_PRESETS) {
+      if (this.data.snippets.some((s) => s.name === p.name)) continue
+      this.data.snippets.push({
+        id: newId(),
+        name: p.name,
+        command: p.script,
+        description: p.description,
+        shell: p.shell,
+        mode: 'run',
+        group: ACTION_PRESET_GROUP,
+        createdAt: now,
+        updatedAt: now,
+        uses: 0
+      })
+    }
+    this.data.seededPacks.push(ACTION_PRESET_PACK)
+    this.file.save()
   }
 
   get data(): Library {

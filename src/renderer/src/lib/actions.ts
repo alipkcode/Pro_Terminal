@@ -7,7 +7,7 @@ import { getTerminalTheme } from '@/terminal/themes'
 import { cdCommand, familyOf, FAMILY_LABEL, quotePath, SHELL_META } from './shell'
 import { expandSnippet, groupSnippets, snippetVariables, usesBuiltin, EXAMPLE_SNIPPETS } from './snippets'
 import { folderName, samePath } from './format'
-import { refreshDesktopStatus, runPendingLaunchers } from './launchers'
+import { refreshDesktopStatus, runPendingActions, runPendingLaunchers } from './launchers'
 
 // ===================================================================== feedback
 
@@ -139,7 +139,9 @@ export async function boot(): Promise<void> {
 
   api.launchers.onPending(() => {
     // Before boot finishes, the queue is taken below instead.
-    if (get().ready) void runPendingLaunchers()
+    if (!get().ready) return
+    void runPendingLaunchers()
+    void runPendingActions()
   })
   for (const s of sessions) upsertSessionLocal(s)
   let saved: string | null = null
@@ -152,8 +154,10 @@ export async function boot(): Promise<void> {
   set({ ready: true, activeId: active })
   // Started from a desktop shortcut: its tab is the one to show, so no extra blank session.
   const launched = await runPendingLaunchers()
-  if (!sessions.length && !launched) await newSession()
-  else if (!launched) focusActive()
+  // Started from a folder action file: its confirmation comes first, and opens the tab (or a blank one).
+  const confirming = await runPendingActions()
+  if (!sessions.length && !launched && !confirming) await newSession()
+  else if (!launched && !confirming) focusActive()
   reportStartupCheck(info)
 }
 

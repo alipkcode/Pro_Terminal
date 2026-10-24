@@ -16,6 +16,21 @@ All notable changes to Pro Terminal are documented here. The format follows
   It opens as a tab in Pro Terminal (starting the app, or reusing the open window), or as a classic console window
   that works without Pro Terminal.
 - Shortcuts appear in the command palette and are included in library export and import.
+- **Folder actions.** Save a script as a small program file (an `.exe` with its own colored icon) that runs in the
+  folder it's opened from — for example "remove the dashes from every name". Drop it into any folder and open it there.
+  - It always asks first, showing the name, the description, the folder, the scope, the shell and the full script.
+    Extra warnings appear for the top of a drive, for files made in another Pro Terminal, and for outdated files.
+  - Choose *this folder only* or *every subfolder*. Subfolders are listed first, then processed one by one, deepest
+    first, so renaming a folder never breaks the paths still to come. Hidden and system folders are skipped, and the
+    file never touches itself.
+  - It opens in Pro Terminal when installed. Otherwise it confirms in a message box and runs in the default terminal
+    (Windows Terminal or a console window), in CMD or PowerShell as chosen.
+  - A three-step wizard with presets, scope previews and every color mood. Folder actions are listed in the shortcuts
+    manager (not in the title bar), where *Run…* picks a folder and confirms before running.
+- **17 ready-made folder scripts** under *Snippets › Folder actions*: remove dashes or dots from names (extensions
+  are kept), dots or underscores to spaces, tidy spaces, find and replace, prefix or suffix, Title Case, lowercase
+  extensions, sort files into folders by type, delete empty folders or junk files, extract every zip, `git pull`
+  or `git status` in every repository, and save or copy a list of the contents.
 
 ### Changed
 - The keyboard-shortcuts section in Settings is now called *Keyboard*, so it isn't confused with the new shortcuts.

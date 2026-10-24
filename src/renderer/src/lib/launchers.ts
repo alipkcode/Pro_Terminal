@@ -1,5 +1,5 @@
 import { LAUNCHER_MOODS } from '@shared/defaults'
-import type { Launcher, SessionInfo } from '@shared/types'
+import type { ActionRequest, ActionSpec, BuildActionResult, Launcher, SessionInfo } from '@shared/types'
 import { api } from '@/api'
 import { get, set } from '@/store/app'
 import { activate, activeSession, focusActive, newSession, resolveFamily, toast, waitForReady } from './actions'
@@ -138,6 +138,8 @@ async function typeScript(target: SessionInfo, l: Launcher, cd = ''): Promise<vo
 /** Open the shortcut: a new tab in its folder and shell, then type (and run) its script. */
 export async function runLauncher(l: Launcher, opts: { here?: boolean } = {}): Promise<boolean> {
   set({ contextMenu: null })
+  // A folder action has no folder of its own: ask for one (or use this tab's), then confirm.
+  if (l.kind === 'action') return chooseActionFolder(l, opts)
   if (!(await api.system.isDirectory(l.folder))) {
     toast('error', 'The shortcut’s folder was not found', {
       message: l.folder,
@@ -185,6 +187,114 @@ export async function runLauncher(l: Launcher, opts: { here?: boolean } = {}): P
   await typeScript(s, l, cd)
   focusActive()
   return true
+}
+
+// ===================================================================== folder actions
+// A script saved as a small program (.exe) that runs in the folder it is opened from. In the app, it
+// asks for a folder instead. Every run is confirmed first (ActionConfirm), whichever way it starts.
+
+/** Open the wizard for a new folder action. Editing an existing one goes through openLauncherEditor. */
+export function openActionEditor(draft?: Partial<Launcher>, step?: number): void {
+  const { library } = get()
+  const base: Partial<Launcher> = draft ?? {
+    shell: resolveFamily('powershell'),
+    color: LAUNCHER_MOODS[(library.launchers.length + 3) % LAUNCHER_MOODS.length].color,
+    script: '',
+    recursive: false
+  }
+  set({ launcherEditor: { draft: { ...base, kind: 'action' }, step }, contextMenu: null })
+}
+
+export const actionSpecOf = (l: Launcher): ActionSpec => ({
+  id: l.id,
+  name: l.name,
+  description: l.description,
+  color: l.color,
+  shell: l.shell,
+  script: l.script,
+  recursive: l.recursive
+})
+
+/** Pick the folder to run an action in (or take the active tab's), then ask for confirmation. */
+async function chooseActionFolder(l: Launcher, opts: { here?: boolean }): Promise<boolean> {
+  const s = activeSession()
+  const folder = opts.here && s ? s.cwd : await api.system.pickFolder(s?.cwd || undefined)
+  if (!folder) return false
+  requestAction({ action: actionSpecOf(l), folder })
+  return true
+}
+
+export function requestAction(req: ActionRequest): void {
+  set((st) => ({ actionQueue: [...st.actionQueue, req], contextMenu: null }))
+}
+
+/** After the last confirmation closes: back to the manager or the terminal, and never an empty window. */
+function afterActionDialog(): void {
+  const st = get()
+  if (st.actionQueue.length) return
+  if (!st.order.length) void newSession()
+  else if (st.launcherManager) document.querySelector<HTMLElement>('.launcher-manager-modal')?.focus()
+  else focusActive()
+}
+
+/** The user said no to the action on screen. */
+export function dismissAction(): void {
+  // Also reachable while the dialog animates out; only the first close counts.
+  if (!get().actionQueue.length) return
+  set((st) => ({ actionQueue: st.actionQueue.slice(1) }))
+  afterActionDialog()
+}
+
+/** The user confirmed the action on screen: run it in a new tab in its folder. */
+export async function confirmAction(): Promise<void> {
+  const req = get().actionQueue[0]
+  if (!req) return
+  set((st) => ({ actionQueue: st.actionQueue.slice(1), launcherManager: false }))
+  const { action, folder, file } = req
+  const prep = await api.actions.prepareRun(action, folder, file)
+  if (!prep.ok) {
+    toast('error', 'The folder action could not start', { message: prep.error })
+    afterActionDialog()
+    return
+  }
+  if (get().library.launchers.some((l) => l.id === action.id && l.kind === 'action')) void api.launchers.used(action.id)
+  set((s) => ({ viewerId: null, overlay: s.overlay === 'archive' ? null : s.overlay }))
+  const info = await newSession({ shell: action.shell, exact: true, cwd: folder, title: action.name })
+  if (!info) return
+  const ready = await waitForReady(info.id)
+  if (ready && ready.status !== 'exited') {
+    await api.sessions.exec(ready.id, prep.command, { execute: true, clearLine: true })
+    activate(ready.id)
+  }
+}
+
+/** Save the action as a program file. Returns its path. */
+export async function saveActionFile(l: Launcher, dest: 'desktop' | 'choose' = 'desktop'): Promise<string | null> {
+  let res: BuildActionResult
+  try {
+    res = await api.actions.build(l.id, await renderIconImages(l.color), dest)
+  } catch (err) {
+    res = { ok: false, error: String(err) }
+  }
+  if (!res.ok) {
+    if (!('canceled' in res)) toast('error', 'Could not save the folder action', { message: res.error })
+    return null
+  }
+  const path = res.path
+  toast('success', dest === 'desktop' ? 'Saved to your desktop' : 'Folder action saved', {
+    message: `${path.split('\\').pop()} — move it into any folder and open it there.`,
+    actions: [{ label: 'Show in folder', primary: true, run: () => void api.actions.reveal(path) }],
+    duration: 8000
+  })
+  return path
+}
+
+/** Queue folder action files that were opened in Explorer. Returns how many are waiting. */
+export async function runPendingActions(): Promise<number> {
+  const { requests, errors } = await api.actions.takePending()
+  for (const e of errors) toast('error', 'Could not open this folder action', { message: `${e.file}\n${e.error}` })
+  if (requests.length) set((s) => ({ actionQueue: [...s.actionQueue, ...requests], contextMenu: null, paletteOpen: false }))
+  return requests.length
 }
 
 /** Run shortcuts requested from desktop shortcuts. Returns how many were opened. */

@@ -13,12 +13,23 @@ import { pathKey } from './store/util'
 // ---------------------------------------------------------------------------------------------
 
 const ARG = '--launcher='
+/** Folder action files (see actions.ts) start Pro Terminal with their own path. */
+const ACTION_ARG = '--action-file='
 const ID_RE = /^[0-9a-f-]{36}$/i
 let queue: string[] = []
+let actionQueue: string[] = []
 
 export function queueLaunchersFromArgv(argv: readonly string[]): boolean {
   let added = false
   for (const a of argv) {
+    if (a.startsWith(ACTION_ARG)) {
+      const file = a.slice(ACTION_ARG.length).replace(/"/g, '').trim()
+      if (file) {
+        actionQueue.push(file)
+        added = true
+      }
+      continue
+    }
     if (!a.startsWith(ARG)) continue
     const id = a.slice(ARG.length).replace(/"/g, '')
     if (ID_RE.test(id)) {
@@ -35,11 +46,17 @@ export function takePendingLaunchers(): string[] {
   return out
 }
 
+export function takePendingActionFiles(): string[] {
+  const out = [...new Set(actionQueue)]
+  actionQueue = []
+  return out
+}
+
 // ---------------------------------------------------------------------------------------------
 // Desktop shortcuts
 // ---------------------------------------------------------------------------------------------
 
-const safeFileName = (s: string): string =>
+export const safeFileName = (s: string): string =>
   s
     .replace(/[<>:"/\\|?*\x00-\x1f]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -79,6 +96,22 @@ function iconImages(raw: unknown): { size: number; data: Buffer }[] {
     if (data.subarray(0, 4).equals(PNG_SIGNATURE)) out.push({ size, data })
   }
   return out.sort((a, b) => a.size - b.size)
+}
+
+/** An .ico file from the renderer's icon images. */
+export function iconFile(raw: IconImages): Buffer {
+  const images = iconImages(raw)
+  if (!images.length) throw new Error('The icon could not be prepared.')
+  return ico(images)
+}
+
+/** `<dir>\<base><ext>`, or `<base> (2)<ext>` and so on when that is taken. */
+export function freePath(dir: string, base: string, ext: string): string {
+  for (let i = 1; i < 100; i++) {
+    const candidate = join(dir, `${base}${i > 1 ? ` (${i})` : ''}${ext}`)
+    if (!existsSync(candidate)) return candidate
+  }
+  return join(dir, `${base} ${Date.now().toString(36)}${ext}`)
 }
 
 export class LauncherFiles {

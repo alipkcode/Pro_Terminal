@@ -120,19 +120,32 @@ export type LauncherMode = 'run' | 'insert'
 /** Where the desktop shortcut opens: a tab in Pro Terminal, or a standalone console window. */
 export type LauncherTarget = 'app' | 'window'
 
+/**
+ * 'shortcut': a fixed folder and a script, in the title bar and optionally on the desktop.
+ * 'action': a script with no folder of its own, saved as a small program (.exe) that runs it in whatever
+ * folder the file is opened from. Actions never appear in the title bar.
+ */
+export type LauncherKind = 'shortcut' | 'action'
+
 /** A one-click shortcut: a shell opened in a folder, optionally running a script. Shown in the title bar. */
 export interface Launcher {
   id: string
+  kind: LauncherKind
   name: string
+  /** What it does, in the user's words. Shown before a folder action runs. */
+  description: string
   /** Accent the shortcut's icon is tinted with. */
   color: string
+  /** Empty for folder actions: they run where they are opened. */
   folder: string
   shell: ShellId
-  /** Typed exactly as saved; may be empty (just open the folder). */
+  /** Typed exactly as saved; may be empty (just open the folder). Folder actions always have one. */
   script: string
   mode: LauncherMode
   target: LauncherTarget
-  /** Shown in the title bar dock (otherwise only in the shortcuts menu). */
+  /** Folder actions: also run in every subfolder (deepest first), not only the folder itself. */
+  recursive: boolean
+  /** Shown in the title bar dock (otherwise only in the shortcuts menu). Always false for folder actions. */
   pinned: boolean
   /** The .lnk file created on the desktop for this shortcut, if any. */
   desktopLink?: string
@@ -144,6 +157,39 @@ export interface Launcher {
 
 /** Icon images (PNG, base64) by pixel size, rendered by the renderer for a desktop shortcut. */
 export type IconImages = { size: number; png: string }[]
+
+/** What a folder action file carries: everything needed to show it and run it, on any PC. */
+export interface ActionSpec {
+  /** The library action the file was made from. */
+  id: string
+  name: string
+  description: string
+  color: string
+  shell: ShellId
+  script: string
+  recursive: boolean
+}
+
+/** A request to run a folder action somewhere, waiting for the user's confirmation. */
+export interface ActionRequest {
+  action: ActionSpec
+  /** The folder it runs in. */
+  folder: string
+  /** The action file that was opened, when it came from one. */
+  file?: string
+  /** The library action it was made from still exists, but has been edited since the file was made. */
+  outdated?: boolean
+  /** The file was not made from an action in this library (another PC, or deleted since). */
+  foreign?: boolean
+}
+
+/** An action file that was opened but could not be read. */
+export interface ActionFileError {
+  file: string
+  error: string
+}
+
+export type BuildActionResult = { ok: true; path: string } | { ok: false; error: string } | { ok: false; canceled: true }
 
 /** How a snippet group looks when the app starts. */
 export type GroupStartState = 'expanded' | 'collapsed' | 'remember'
@@ -165,6 +211,8 @@ export interface Library {
   snippetGroupOrder: string[]
   /** Groups that were collapsed when last toggled (used by the "remember" start state). */
   snippetGroupsCollapsed: string[]
+  /** Built-in snippet packs already added once, so deleting them sticks. */
+  seededPacks: string[]
 }
 
 export type AppTheme = 'dark' | 'light' | 'system'

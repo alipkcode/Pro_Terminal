@@ -2,7 +2,25 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, nativeTheme, shell } fr
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { IPC } from '@shared/ipc'
-import type { AppInfo, AppTheme, ArchivePatch, CreateSessionOptions, ExecOptions, IconImages, Launcher, Settings, ShellId, Snippet, TagDef, WindowMaterial } from '@shared/types'
+import { join } from 'node:path'
+import type {
+  ActionFileError,
+  ActionRequest,
+  ActionSpec,
+  AppInfo,
+  AppTheme,
+  ArchivePatch,
+  BuildActionResult,
+  CreateSessionOptions,
+  ExecOptions,
+  IconImages,
+  Launcher,
+  Settings,
+  ShellId,
+  Snippet,
+  TagDef,
+  WindowMaterial
+} from '@shared/types'
 import type { LibraryStore } from './store/library'
 import type { SettingsStore } from './store/settings'
 import { displayTitle, isSessionId, type SessionStore } from './store/sessions'
@@ -10,7 +28,18 @@ import { isObject } from './store/util'
 import { isDirectory, type SessionManager } from './pty/manager'
 import { detectShells } from './pty/shells'
 import { getLastReport } from './health/report'
-import { LauncherFiles, takePendingLaunchers } from './launchers'
+import { freePath, iconFile, LauncherFiles, safeFileName as safeLinkName, takePendingActionFiles, takePendingLaunchers } from './launchers'
+import { actionFolderOf, ActionRuns, buildActionProgram, normActionSpec, readActionFile } from './actions'
+
+const actionSpecOf = (l: Launcher): ActionSpec => ({
+  id: l.id,
+  name: l.name,
+  description: l.description,
+  color: l.color,
+  shell: l.shell,
+  script: l.script,
+  recursive: l.recursive
+})
 import { TITLEBAR_HEIGHT } from './window'
 
 interface Ctx {
@@ -33,6 +62,7 @@ const safeFileName = (s: string): string => s.replace(/[<>:"/\\|?*\x00-\x1f]+/g,
 export function registerIpc(ctx: Ctx): void {
   const { manager, settings, library, store } = ctx
   const launcherFiles = new LauncherFiles(ctx.dataDir, settings)
+  const actionRuns = new ActionRuns(ctx.dataDir)
   const handle = (channel: string, fn: (...args: any[]) => unknown): void => {
     ipcMain.handle(channel, (_e, ...args) => fn(...args))
   }
@@ -116,6 +146,7 @@ export function registerIpc(ctx: Ctx): void {
   handle(IPC.launchersDesktopCreate, (id: string, icons: IconImages) => {
     const l = typeof id === 'string' ? library.getLauncher(id) : undefined
     if (!l) return { ok: false, error: 'This shortcut no longer exists.' }
+    if (l.kind === 'action') return { ok: false, error: 'Folder actions are saved as a file instead.' }
     if (!isDirectory(l.folder)) return { ok: false, error: `The folder ${l.folder} was not found.` }
     try {
       const path = launcherFiles.writeDesktop(l, icons)
@@ -137,6 +168,65 @@ export function registerIpc(ctx: Ctx): void {
   })
   handle(IPC.launchersDesktopStatus, () => library.data.launchers.filter((l) => l.desktopLink && existsSync(l.desktopLink)).map((l) => l.id))
   handle(IPC.launchersTakePending, () => takePendingLaunchers())
+
+  // ---------------------------------------------------------------- folder actions (see actions.ts)
+  handle(IPC.actionsBuild, async (id: string, icons: IconImages, dest: string): Promise<BuildActionResult> => {
+    const l = typeof id === 'string' ? library.getLauncher(id) : undefined
+    if (!l || l.kind !== 'action') return { ok: false, error: 'This folder action no longer exists.' }
+    const base = safeLinkName(l.name)
+    let target: string
+    if (dest === 'choose') {
+      const win = ctx.getWindow()
+      const opts = {
+        title: 'Save folder action',
+        defaultPath: join(app.getPath('desktop'), `${base}.exe`),
+        filters: [{ name: 'Folder action (program)', extensions: ['exe'] }]
+      }
+      const res = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+      if (res.canceled || !res.filePath) return { ok: false, canceled: true }
+      target = /\.exe$/i.test(res.filePath) ? res.filePath : `${res.filePath}.exe`
+    } else {
+      target = freePath(app.getPath('desktop'), base, '.exe')
+    }
+    try {
+      await buildActionProgram(actionSpecOf(l), iconFile(icons), target)
+      return { ok: true, path: target }
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException)?.code
+      if (code === 'EBUSY' || code === 'EPERM' || code === 'EACCES') return { ok: false, error: `${target} is in use or can't be written. Close it, or save somewhere else.` }
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+  handle(IPC.actionsReveal, (p: string) => {
+    if (typeof p === 'string' && /\.exe$/i.test(p) && existsSync(p)) shell.showItemInFolder(p)
+  })
+  handle(IPC.actionsPrepareRun, (raw: unknown, folder: string, file?: string) => {
+    const spec = normActionSpec(raw)
+    if (!spec) return { ok: false, error: 'This folder action has no script.' }
+    if (typeof folder !== 'string' || !isDirectory(folder)) return { ok: false, error: `The folder ${String(folder)} was not found.` }
+    try {
+      return { ok: true, command: actionRuns.prepare(spec, folder, typeof file === 'string' ? file : undefined) }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+  handle(IPC.actionsTakePending, async () => {
+    const requests: ActionRequest[] = []
+    const errors: ActionFileError[] = []
+    for (const file of takePendingActionFiles()) {
+      try {
+        const action = await readActionFile(file)
+        const own = library.getLauncher(action.id)
+        const foreign = !own || own.kind !== 'action'
+        const outdated = !foreign && (own.script !== action.script || own.shell !== action.shell || own.recursive !== action.recursive)
+        requests.push({ action, folder: actionFolderOf(file), file, foreign, outdated })
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException)?.code
+        errors.push({ file, error: code === 'ENOENT' ? 'The file was not found.' : err instanceof Error ? err.message : String(err) })
+      }
+    }
+    return { requests, errors }
+  })
 
   handle(IPC.tagsUpsert, (tag: TagDef, previous?: string) => {
     const res = library.upsertTag(tag, previous)
