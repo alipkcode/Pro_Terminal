@@ -1,6 +1,7 @@
 import { join, basename } from 'node:path'
 import { ACTION_PRESET_GROUP, ACTION_PRESET_PACK, ACTION_PRESETS } from '@shared/actionPresets'
 import { DEFAULT_LIBRARY, LAUNCHER_MOODS, LIMITS } from '@shared/defaults'
+import { POWER_TIMER_SNIPPET } from '@shared/power'
 import type { FavoriteFolder, Launcher, Library, RecentFolder, Snippet, TagDef } from '@shared/types'
 import { JsonFile } from './jsonFile'
 import { arr, groupNames, isObject, newId, num, oneOf, pathKey, str } from './util'
@@ -39,7 +40,8 @@ function normSnippet(v: unknown): Snippet | null {
     createdAt: num(v.createdAt, now),
     updatedAt: num(v.updatedAt, now),
     uses: Math.max(0, Math.round(num(v.uses, 0))),
-    lastUsedAt: typeof v.lastUsedAt === 'number' ? v.lastUsedAt : undefined
+    lastUsedAt: typeof v.lastUsedAt === 'number' ? v.lastUsedAt : undefined,
+    ...(v.tool === 'power-timer' ? { tool: v.tool } : {})
   }
 }
 
@@ -154,7 +156,32 @@ export class LibraryStore {
 
   constructor(dataDir: string) {
     this.file = new JsonFile(join(dataDir, 'library.json'), DEFAULT_LIBRARY, normalize)
+    this.seedSystemTools()
     this.seedActionPresets()
+  }
+
+  /** Adds the built-in tools (the power timer) to the snippets once, first in the list; deleted stays deleted. */
+  private seedSystemTools(): void {
+    const p = POWER_TIMER_SNIPPET
+    if (this.data.seededPacks.includes(p.pack)) return
+    if (!this.data.snippets.some((s) => s.name === p.name || s.tool === 'power-timer')) {
+      const now = Date.now()
+      this.data.snippets.unshift({
+        id: newId(),
+        name: p.name,
+        command: p.command,
+        description: p.description,
+        shell: 'powershell',
+        mode: 'run',
+        group: p.group,
+        tool: 'power-timer',
+        createdAt: now,
+        updatedAt: now,
+        uses: 0
+      })
+    }
+    this.data.seededPacks.push(p.pack)
+    this.file.save()
   }
 
   /** Adds the folder-action scripts to the snippets once; presets the user deletes stay deleted. */

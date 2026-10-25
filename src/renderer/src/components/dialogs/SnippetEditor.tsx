@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Braces, Code2, Copy, Keyboard, Play, Trash2 } from 'lucide-react'
+import { AlarmClock, Braces, Code2, Copy, Keyboard, Play, Trash2 } from 'lucide-react'
 import type { Snippet, SnippetMode, SnippetShell } from '@shared/types'
 import { api } from '@/api'
 import { set, useApp } from '@/store/app'
@@ -44,21 +44,27 @@ export function SnippetEditor() {
     focusActive()
   }
   const editing = !!draft?.id
+  // A built-in tool keeps its command and behavior; only its name, group and description change.
+  const tool = !!draft?.tool
   const nameMissing = touched && !name.trim()
   const cmdMissing = touched && !command.trim()
 
   const save = async () => {
     setTouched(true)
-    if (!name.trim() || !command.trim()) return
-    const saved = await api.library.upsertSnippet({
-      id: draft?.id,
-      name: name.trim(),
-      command: command.replace(/\s+$/, ''),
-      description: description.trim() || undefined,
-      group: group.trim() || undefined,
-      shell,
-      mode
-    })
+    if (!name.trim() || (!tool && !command.trim())) return
+    const saved = await api.library.upsertSnippet(
+      tool
+        ? { id: draft?.id, name: name.trim(), command: draft?.command ?? '', description: description.trim() || undefined, group: group.trim() || undefined }
+        : {
+            id: draft?.id,
+            name: name.trim(),
+            command: command.replace(/\s+$/, ''),
+            description: description.trim() || undefined,
+            group: group.trim() || undefined,
+            shell,
+            mode
+          }
+    )
     toast('success', editing ? 'Snippet updated' : 'Snippet saved', { message: saved.name })
     close()
   }
@@ -70,9 +76,9 @@ export function SnippetEditor() {
       open={!!draft}
       onClose={close}
       width={600}
-      icon={<Code2 size={18} />}
-      title={editing ? 'Edit snippet' : 'New snippet'}
-      subtitle="Save a command or script and run it with one click"
+      icon={tool ? <AlarmClock size={18} /> : <Code2 size={18} />}
+      title={tool ? 'Edit built-in tool' : editing ? 'Edit snippet' : 'New snippet'}
+      subtitle={tool ? 'Rename it or move it to another group' : 'Save a command or script and run it with one click'}
       footer={
         <>
           {editing && (
@@ -126,70 +132,79 @@ export function SnippetEditor() {
           </label>
         </div>
 
-        <label className="field">
-          <span className="field__label">
-            Command
-            <span className="field__hint">
-              <Braces size={11} /> {'{{name}}'} or {'{{name:default}}'} asks for a value · built-ins: {BUILTIN_VARS.map((b) => `{{${b}}}`).join(' ')}
+        {!tool && (
+          <label className="field">
+            <span className="field__label">
+              Command
+              <span className="field__hint">
+                <Braces size={11} /> {'{{name}}'} or {'{{name:default}}'} asks for a value · built-ins: {BUILTIN_VARS.map((b) => `{{${b}}}`).join(' ')}
+              </span>
             </span>
-          </span>
-          <textarea
-            className={`textarea mono ${cmdMissing ? 'input--error' : ''}`}
-            value={command}
-            onChange={(e) => setCommand(e.target.value)}
-            placeholder={'npm run dev\n\n# or a multi-line script — each line is entered in order'}
-            rows={5}
-            spellCheck={false}
-            data-autofocus={draft?.command ? true : undefined}
-          />
-          {(vars.length > 0 || multiline) && (
-            <div className="var-preview">
-              {vars.map((v) => (
-                <span key={v.name} className="var-chip">
-                  {v.name}
-                  {v.defaultValue && <span className="var-chip__def">= {v.defaultValue}</span>}
-                </span>
-              ))}
-              {multiline && <span className="field__hint">Multi-line: lines are entered one after another.</span>}
-            </div>
-          )}
-        </label>
+            <textarea
+              className={`textarea mono ${cmdMissing ? 'input--error' : ''}`}
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              placeholder={'npm run dev\n\n# or a multi-line script — each line is entered in order'}
+              rows={5}
+              spellCheck={false}
+              data-autofocus={draft?.command ? true : undefined}
+            />
+            {(vars.length > 0 || multiline) && (
+              <div className="var-preview">
+                {vars.map((v) => (
+                  <span key={v.name} className="var-chip">
+                    {v.name}
+                    {v.defaultValue && <span className="var-chip__def">= {v.defaultValue}</span>}
+                  </span>
+                ))}
+                {multiline && <span className="field__hint">Multi-line: lines are entered one after another.</span>}
+              </div>
+            )}
+          </label>
+        )}
 
         <label className="field">
           <span className="field__label">Description <span className="field__hint">optional</span></span>
           <input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What does it do?" maxLength={500} />
         </label>
 
-        <div className="form-row form-row--top">
-          <div className="field" style={{ flex: 1 }}>
-            <span className="field__label">When clicked</span>
-            <Segmented
-              value={mode}
-              onChange={setMode}
-              stretch
-              options={[
-                { value: 'run', label: 'Run', icon: <Play size={13} /> },
-                { value: 'insert', label: 'Type', icon: <Keyboard size={13} /> },
-                { value: 'copy', label: 'Copy', icon: <Copy size={13} /> }
-              ]}
-            />
-            <span className="field__hint">{MODE_HELP[mode]}</span>
+        {tool ? (
+          <p className="field__hint snippet-tool-note">
+            <AlarmClock size={13} />
+            Clicking it opens the power timer. It has no command to edit.
+          </p>
+        ) : (
+          <div className="form-row form-row--top">
+            <div className="field" style={{ flex: 1 }}>
+              <span className="field__label">When clicked</span>
+              <Segmented
+                value={mode}
+                onChange={setMode}
+                stretch
+                options={[
+                  { value: 'run', label: 'Run', icon: <Play size={13} /> },
+                  { value: 'insert', label: 'Type', icon: <Keyboard size={13} /> },
+                  { value: 'copy', label: 'Copy', icon: <Copy size={13} /> }
+                ]}
+              />
+              <span className="field__hint">{MODE_HELP[mode]}</span>
+            </div>
+            <div className="field" style={{ width: 230 }}>
+              <span className="field__label">Shell</span>
+              <Segmented
+                value={shell}
+                onChange={setShell}
+                stretch
+                options={[
+                  { value: 'any', label: 'Any' },
+                  { value: 'cmd', label: 'CMD', icon: <CmdIcon size={13} /> },
+                  { value: 'powershell', label: 'PS', icon: <PsIcon size={13} /> }
+                ]}
+              />
+              <span className="field__hint">{shell === 'any' ? 'Works in both shells.' : 'You’ll be warned in the other shell.'}</span>
+            </div>
           </div>
-          <div className="field" style={{ width: 230 }}>
-            <span className="field__label">Shell</span>
-            <Segmented
-              value={shell}
-              onChange={setShell}
-              stretch
-              options={[
-                { value: 'any', label: 'Any' },
-                { value: 'cmd', label: 'CMD', icon: <CmdIcon size={13} /> },
-                { value: 'powershell', label: 'PS', icon: <PsIcon size={13} /> }
-              ]}
-            />
-            <span className="field__hint">{shell === 'any' ? 'Works in both shells.' : 'You’ll be warned in the other shell.'}</span>
-          </div>
-        </div>
+        )}
         <button type="submit" hidden />
       </form>
     </Modal>

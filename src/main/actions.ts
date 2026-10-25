@@ -486,7 +486,8 @@ static class FolderAction
 /** A C# verbatim string body: quotes doubled, control characters other than tabs and line breaks removed. */
 const csVerbatim = (s: string): string => s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '').replace(/"/g, '""')
 
-function compilerPath(): string | null {
+/** The C# compiler that ships with Windows (.NET Framework 4); the power timer compiles its helper with it too. */
+export function compilerPath(): string | null {
   const root = process.env.SystemRoot || process.env.windir || 'C:\\Windows'
   for (const fw of ['Framework64', 'Framework']) {
     const p = join(root, 'Microsoft.NET', fw, 'v4.0.30319', 'csc.exe')
@@ -495,7 +496,7 @@ function compilerPath(): string | null {
   return null
 }
 
-function run(file: string, args: string[], cwd: string): Promise<string> {
+export function run(file: string, args: string[], cwd: string): Promise<string> {
   return new Promise((resolve, reject) => {
     execFile(file, args, { cwd, timeout: 60_000, windowsHide: true }, (err, stdout, stderr) => {
       if (err) reject(new Error(`${String(stdout || stderr || err.message).trim().split(/\r?\n/).slice(0, 6).join('\n')}`))

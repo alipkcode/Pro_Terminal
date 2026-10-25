@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { ReactNode } from 'react'
 import { DEFAULT_LIBRARY, DEFAULT_SETTINGS } from '@shared/defaults'
-import type { ActionRequest, AppInfo, ArchivedSession, FavoriteFolder, Launcher, Library, QuitRequest, SessionInfo, Settings, Snippet } from '@shared/types'
+import type { ActionRequest, AppInfo, ArchivedSession, FavoriteFolder, Launcher, Library, PowerTimer, QuitRequest, SessionInfo, Settings, Snippet } from '@shared/types'
 import type { SnippetVar } from '@/lib/snippets'
 
 export type PanelId = 'sessions' | 'folders' | 'snippets'
@@ -91,6 +91,9 @@ interface State {
   contextMenu: ContextMenuState | null
   /** Snippet groups opened or closed by hand during this run, keyed by group name. Overrides the start state. */
   snippetGroupOpen: Record<string, boolean>
+  /** The scheduled shutdown / restart / sleep / hibernate, if any. */
+  powerTimer: PowerTimer | null
+  powerOpen: boolean
 }
 
 export const useApp = create<State>()(() => ({
@@ -120,7 +123,9 @@ export const useApp = create<State>()(() => ({
   varsPrompt: null,
   quitRequest: null,
   contextMenu: null,
-  snippetGroupOpen: {}
+  snippetGroupOpen: {},
+  powerTimer: null,
+  powerOpen: false
 }))
 
 function readPanel(): PanelId | null {

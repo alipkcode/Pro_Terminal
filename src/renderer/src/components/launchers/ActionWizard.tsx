@@ -119,7 +119,9 @@ function ScopeOption({ on, recursive, title, sub, onPick }: { on: boolean; recur
 export function ActionWizard() {
   const req = useApp((s) => (s.launcherEditor?.draft.kind === 'action' ? s.launcherEditor : null))
   const shells = useApp((s) => s.info?.shells ?? NO_SHELLS)
-  const snippets = useApp((s) => s.library.snippets)
+  const allSnippets = useApp((s) => s.library.snippets)
+  // Built-in tools (the power timer) have no script to use.
+  const snippets = useMemo(() => allSnippets.filter((s) => !s.tool), [allSnippets])
 
   const [step, setStep] = useState(0)
   const [dir, setDir] = useState(1)

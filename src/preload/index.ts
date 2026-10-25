@@ -80,6 +80,14 @@ const api: PtApi = {
     prepareRun: (action, folder, file) => invoke(IPC.actionsPrepareRun, action, folder, file),
     takePending: () => invoke(IPC.actionsTakePending)
   },
+  power: {
+    get: () => invoke(IPC.powerGet),
+    caps: () => invoke(IPC.powerCaps),
+    schedule: (spec) => invoke(IPC.powerSchedule, spec),
+    cancel: () => invoke(IPC.powerCancel),
+    preview: (spec) => invoke(IPC.powerPreview, spec),
+    onChanged: (cb) => subscribe(IPC.evPowerChanged, cb)
+  },
   settings: {
     get: () => invoke(IPC.settingsGet),
     set: (patch) => invoke(IPC.settingsSet, patch),

@@ -2,6 +2,7 @@ import { app, BrowserWindow, nativeTheme } from 'electron'
 import { IPC } from '@shared/ipc'
 import { markCleanExit } from './health/checks'
 import { registerIpc } from './ipc'
+import { PowerTimers } from './power'
 import { SessionManager } from './pty/manager'
 import { LibraryStore } from './store/library'
 import { SessionStore } from './store/sessions'
@@ -16,6 +17,7 @@ export function startApp(dataDir: string): BrowserWindow {
   const settings = new SettingsStore(dataDir)
   const library = new LibraryStore(dataDir)
   const store = new SessionStore(dataDir)
+  const power = new PowerTimers(dataDir)
 
   let win: BrowserWindow | null = null
   let saveWindowState: () => void = () => {}
@@ -30,6 +32,7 @@ export function startApp(dataDir: string): BrowserWindow {
   settings.onChange((s) => send(IPC.evSettingsChanged, s))
   library.onChange((lib) => send(IPC.evLibraryChanged, lib))
   store.onArchiveChange(() => send(IPC.evArchiveChanged))
+  power.onChange((t) => send(IPC.evPowerChanged, t))
 
   // ---------------------------------------------------------------- quitting
   let quitting = false
@@ -45,13 +48,15 @@ export function startApp(dataDir: string): BrowserWindow {
       settings.flush()
       library.flush()
       store.flush()
+      power.dispose()
       markCleanExit(dataDir)
       readyToClose = true
       app.quit()
     }
   }
 
-  registerIpc({ getWindow, manager, settings, library, store, dataDir, requestQuit: () => void shutdown() })
+  registerIpc({ getWindow, manager, settings, library, store, power, dataDir, requestQuit: () => void shutdown() })
+  power.start().catch((err) => console.warn('[power] could not check the power timer', err))
 
   // Revive sessions before the window exists so their shells start up in parallel with the UI.
   manager.restoreOnStartup()

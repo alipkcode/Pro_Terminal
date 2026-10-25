@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
+  AlarmClock,
+  AlarmClockOff,
   Archive,
   Clock,
   Code2,
@@ -55,6 +57,8 @@ import { folderName, samePath, shortPath } from '@/lib/format'
 import { familyOf } from '@/lib/shell'
 import { TERMINAL_THEMES } from '@/terminal/themes'
 import { openActionEditor, openLauncherEditor, openLauncherManager, runLauncher } from '@/lib/launchers'
+import { cancelPowerTimer, openPowerTimer, whenPhrase } from '@/lib/power'
+import { POWER_META } from '@shared/power'
 import { LauncherIcon, ShellIcon } from './icons'
 import { Highlight } from './ui/Controls'
 
@@ -70,6 +74,7 @@ interface Item {
 }
 
 const GROUP_ORDER = ['Sessions', 'Shortcuts', 'Snippets', 'Folders', 'Actions', 'Themes']
+const POWER_KEYWORDS = 'shutdown shut down restart reboot sleep hibernate schedule timer power off turn off'
 
 function useItems(): Item[] {
   const sessions = useApp((s) => s.sessions)
@@ -77,6 +82,7 @@ function useItems(): Item[] {
   const activeId = useApp((s) => s.activeId)
   const library = useApp((s) => s.library)
   const settings = useApp((s) => s.settings)
+  const powerTimer = useApp((s) => s.powerTimer)
 
   return useMemo(() => {
     const items: Item[] = []
@@ -125,6 +131,20 @@ function useItems(): Item[] {
     }
 
     for (const sn of library.snippets) {
+      if (sn.tool) {
+        // A built-in tool: its command is only a placeholder.
+        items.push({
+          id: `snippet:${sn.id}`,
+          group: 'Snippets',
+          title: sn.name,
+          subtitle: sn.description,
+          icon: <AlarmClock size={14} />,
+          hint: 'Open',
+          keywords: `${sn.group ?? ''} ${sn.description ?? ''} ${POWER_KEYWORDS}`,
+          run: () => void runSnippet(sn)
+        })
+        continue
+      }
       items.push({
         id: `snippet:${sn.id}`,
         group: 'Snippets',
@@ -177,6 +197,7 @@ function useItems(): Item[] {
       act('new-launcher', 'New shortcut…', <Zap size={14} />, () => openLauncherEditor(), undefined, 'launcher desktop folder script'),
       act('new-launcher-action', 'New folder action…', <Wand2 size={14} />, () => openActionEditor(), undefined, 'script file program exe rename'),
       act('launchers', 'Manage shortcuts', <Zap size={14} />, openLauncherManager, 'Ctrl+Shift+L', 'launcher desktop'),
+      act('power-timer', powerTimer ? 'Power timer: change or cancel…' : 'Power timer…', <AlarmClock size={14} />, openPowerTimer, undefined, POWER_KEYWORDS),
       act('archive', 'Open archive', <Archive size={14} />, () => openArchive(), 'Ctrl+Shift+H', 'history closed sessions'),
       act('settings', 'Open settings', <Settings2 size={14} />, openSettings, 'Ctrl+,', 'preferences'),
       act('panel', 'Toggle side panel', <PanelLeft size={14} />, () => togglePanel(get().panel ?? 'sessions'), 'Ctrl+Shift+B'),
@@ -195,6 +216,18 @@ function useItems(): Item[] {
         'appearance'
       )
     )
+    if (powerTimer) {
+      items.push(
+        act(
+          'power-cancel',
+          `Cancel power timer (${POWER_META[powerTimer.action].label.toLowerCase()} ${whenPhrase(powerTimer.next)})`,
+          <AlarmClockOff size={14} />,
+          () => void cancelPowerTimer(),
+          undefined,
+          POWER_KEYWORDS
+        )
+      )
+    }
     if (active) {
       items.push(
         act('find', 'Find in terminal', <Search size={14} />, () => set({ findOpen: true }), 'Ctrl+Shift+F'),
@@ -223,7 +256,7 @@ function useItems(): Item[] {
       })
     }
     return items
-  }, [sessions, order, activeId, library, settings])
+  }, [sessions, order, activeId, library, settings, powerTimer])
 }
 
 export function CommandPalette() {

@@ -55,6 +55,7 @@ export function handleGlobalKey(e: KeyboardEvent): boolean {
     state.quitRequest ||
     state.launcherEditor ||
     state.launcherManager ||
+    state.powerOpen ||
     state.actionQueue.length > 0
   )
 

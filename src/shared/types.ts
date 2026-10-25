@@ -100,6 +100,8 @@ export interface RecentFolder {
 
 export type SnippetMode = 'run' | 'insert' | 'copy'
 export type SnippetShell = 'any' | ShellFamily
+/** Built-in tools a snippet can open instead of typing its command. */
+export type SnippetTool = 'power-timer'
 
 export interface Snippet {
   id: string
@@ -109,6 +111,8 @@ export interface Snippet {
   shell: SnippetShell
   mode: SnippetMode
   group?: string
+  /** Opens this built-in tool when clicked; the command is then only a note for older versions. */
+  tool?: SnippetTool
   createdAt: number
   updatedAt: number
   uses: number
@@ -190,6 +194,51 @@ export interface ActionFileError {
 }
 
 export type BuildActionResult = { ok: true; path: string } | { ok: false; error: string } | { ok: false; canceled: true }
+
+export type PowerAction = 'shutdown' | 'restart' | 'sleep' | 'hibernate'
+
+/** What the power timer does, and when. Times are the PC's local time. */
+export interface PowerTimerSpec {
+  action: PowerAction
+  /** Time of day, 'HH:MM' (24-hour). */
+  time: string
+  /** Day of a one-off timer, 'YYYY-MM-DD'. Not used when it repeats. */
+  date: string
+  /** Weekdays it repeats on (0 = Sunday … 6 = Saturday); empty for a one-off timer. */
+  days: number[]
+  /** Seconds the warning window counts down before it happens; 0 shows no warning. */
+  warn: number
+  /** Shut down or restart even when apps with unsaved work object (they close without saving). */
+  force: boolean
+  /** Wake the PC from sleep to shut down or restart on time. */
+  wake: boolean
+}
+
+/**
+ * 'task': a Windows scheduled task, so it happens even with Pro Terminal closed.
+ * 'app': Windows didn't allow a scheduled task, so Pro Terminal itself waits (it must stay open).
+ */
+export type PowerEngine = 'task' | 'app'
+
+export interface PowerTimer extends PowerTimerSpec {
+  id: string
+  /** When it next happens (ms). */
+  next: number
+  engine: PowerEngine
+  /** Why Windows refused the scheduled task, when the engine is 'app'. */
+  engineNote?: string
+  createdAt: number
+  /** The warning window is counting down (or was postponed) and it happens at this moment. */
+  warningUntil?: number
+}
+
+/** What this PC supports. 'modern': Modern Standby, where sleep starts by turning the screen off. */
+export interface PowerCaps {
+  sleep: 'standby' | 'modern' | 'none'
+  hibernate: boolean
+}
+
+export type PowerScheduleResult = { ok: true; timer: PowerTimer } | { ok: false; error: string }
 
 /** How a snippet group looks when the app starts. */
 export type GroupStartState = 'expanded' | 'collapsed' | 'remember'

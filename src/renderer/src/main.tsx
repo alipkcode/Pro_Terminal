@@ -9,6 +9,7 @@ import './styles/overlays.css'
 import './styles/archive.css'
 import './styles/launchers.css'
 import './styles/actions.css'
+import './styles/power.css'
 import { App } from './App'
 
 createRoot(document.getElementById('root')!).render(<App />)

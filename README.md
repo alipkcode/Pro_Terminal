@@ -104,6 +104,10 @@ Each snippet is set to **Run** (types it and presses Enter), **Insert** (types i
 Group snippets, **drag groups to reorder** them, and choose whether each group starts expanded, collapsed
 or as you last left it.
 
+The built-in **Power timer** (*Snippets › System*) shuts down, restarts, sleeps or hibernates the PC at a time you
+pick, once or every week on chosen days. It warns you first with a countdown you can cancel or postpone, and it
+works even when Pro Terminal is closed.
+
 ### ⚡ Shortcuts and folder actions (*new in 1.3.0*)
 
 - **Shortcuts**: a folder, a shell and an optional script, one click away in the title bar. Add any of them

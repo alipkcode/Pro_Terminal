@@ -6,6 +6,22 @@ All notable changes to Pro Terminal are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Power timer.** A built-in *Power timer* under *Snippets › System* shuts down, restarts, sleeps or hibernates
+  the PC at a date and time you pick, once or on chosen weekdays (every day, weekdays, or your own days).
+  - Pick the action, a day from a strip (or any date), and the time with a big clock-style picker. You can use the
+    mouse wheel, the arrow keys or type the digits, or tap *+15 min* to *+2 hours*. A live clock shows when it
+    happens and how long is left.
+  - It is set as a Windows scheduled task for your account, so it happens even when Pro Terminal is closed. Shutdown
+    and restart can wake the PC from sleep to happen on time. When Windows refuses the task (some managed PCs), Pro
+    Terminal does it itself and says to keep it open.
+  - A warning window (off, 30 seconds up to 5 minutes) counts down first with *Cancel* (or *Skip this time*),
+    *+10 min* and *Do it now*. *Preview warning* shows it without doing anything.
+  - Optionally close apps that would block a shutdown or restart. Hibernate is unavailable when it's turned off
+    in Windows. On Modern Standby PCs, sleep turns the screen off, which is how those PCs go to sleep.
+  - While a timer is set, its countdown sits in the status bar. Change or cancel it there, from its card, or from
+    the command palette (*Power timer…*, *Cancel power timer*). Cancelling can be undone.
+
 ## [1.3.0] - 2026-10-24
 
 One-click shortcuts and folder actions. Installing this version over 1.2.0 upgrades it in place and keeps your

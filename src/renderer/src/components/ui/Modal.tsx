@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { X } from 'lucide-react'
 
@@ -12,11 +12,13 @@ interface ModalProps {
   children: ReactNode
   footer?: ReactNode
   className?: string
+  /** Extra styles for the panel, such as CSS variables its contents use. */
+  style?: CSSProperties
   /** Close when the backdrop is clicked (default true). */
   dismissable?: boolean
 }
 
-export function Modal({ open, onClose, title, subtitle, icon, width = 520, children, footer, className, dismissable = true }: ModalProps) {
+export function Modal({ open, onClose, title, subtitle, icon, width = 520, children, footer, className, style, dismissable = true }: ModalProps) {
   const panel = useRef<HTMLDivElement>(null)
   // Callers pass a fresh onClose every render; keep the latest in a ref so the open-time
   // effect below runs once per opening and doesn't steal focus back on every keystroke.
@@ -62,7 +64,7 @@ export function Modal({ open, onClose, title, subtitle, icon, width = 520, child
             role="dialog"
             aria-modal="true"
             className={`modal ${className ?? ''}`}
-            style={{ width }}
+            style={{ ...style, width }}
             initial={{ opacity: 0, y: 14, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.14 } }}

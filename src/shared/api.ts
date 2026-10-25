@@ -16,6 +16,10 @@ import type {
   IconImages,
   Launcher,
   Library,
+  PowerCaps,
+  PowerScheduleResult,
+  PowerTimer,
+  PowerTimerSpec,
   QuitRequest,
   SessionInfo,
   Settings,
@@ -105,6 +109,18 @@ export interface PtApi {
     prepareRun(action: ActionSpec, folder: string, file?: string): Promise<{ ok: true; command: string } | { ok: false; error: string }>
     /** Folder action files opened (from Explorer) and not handled yet. */
     takePending(): Promise<{ requests: ActionRequest[]; errors: ActionFileError[] }>
+  }
+  power: {
+    /** The scheduled power timer, if any. */
+    get(): Promise<PowerTimer | null>
+    /** What this PC supports (sleep kind, hibernation). Null when it can't be checked. */
+    caps(): Promise<PowerCaps | null>
+    /** Schedule a timer, replacing the current one. */
+    schedule(spec: PowerTimerSpec): Promise<PowerScheduleResult>
+    cancel(): Promise<void>
+    /** Show the warning window as it will look, without doing anything. */
+    preview(spec: PowerTimerSpec): Promise<{ ok: true } | { ok: false; error: string }>
+    onChanged(cb: (timer: PowerTimer | null) => void): Unsubscribe
   }
   settings: {
     get(): Promise<Settings>

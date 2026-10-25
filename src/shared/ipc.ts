@@ -66,6 +66,14 @@ export const IPC = {
   libraryImport: 'library:import',
   evLibraryChanged: 'ev:library-changed',
 
+  // power timer
+  powerGet: 'power:get',
+  powerCaps: 'power:caps',
+  powerSchedule: 'power:schedule',
+  powerCancel: 'power:cancel',
+  powerPreview: 'power:preview',
+  evPowerChanged: 'ev:power-changed',
+
   // settings
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',

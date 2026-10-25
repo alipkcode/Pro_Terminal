@@ -21,6 +21,7 @@ import type {
   TagDef,
   WindowMaterial
 } from '@shared/types'
+import type { PowerTimers } from './power'
 import type { LibraryStore } from './store/library'
 import type { SettingsStore } from './store/settings'
 import { displayTitle, isSessionId, type SessionStore } from './store/sessions'
@@ -48,6 +49,7 @@ interface Ctx {
   settings: SettingsStore
   library: LibraryStore
   store: SessionStore
+  power: PowerTimers
   dataDir: string
   requestQuit: () => void
 }
@@ -227,6 +229,13 @@ export function registerIpc(ctx: Ctx): void {
     }
     return { requests, errors }
   })
+
+  // The power timer checks what it is given itself.
+  handle(IPC.powerGet, () => ctx.power.timer)
+  handle(IPC.powerCaps, () => ctx.power.caps())
+  handle(IPC.powerSchedule, (spec: unknown) => ctx.power.schedule(spec))
+  handle(IPC.powerCancel, () => ctx.power.cancel())
+  handle(IPC.powerPreview, (spec: unknown) => ctx.power.preview(spec))
 
   handle(IPC.tagsUpsert, (tag: TagDef, previous?: string) => {
     const res = library.upsertTag(tag, previous)

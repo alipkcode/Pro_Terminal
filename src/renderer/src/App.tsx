@@ -16,6 +16,7 @@ import { LauncherManager } from './components/launchers/LauncherManager'
 import { LauncherWizard } from './components/launchers/LauncherWizard'
 import { ActionWizard } from './components/launchers/ActionWizard'
 import { ActionConfirm } from './components/launchers/ActionConfirm'
+import { PowerTimerDialog } from './components/power/PowerTimerDialog'
 import { Toasts } from './components/ui/Toasts'
 import { ContextMenu } from './components/ui/ContextMenu'
 import { TooltipLayer } from './components/ui/Tooltip'
@@ -70,6 +71,7 @@ export function App() {
       <LauncherWizard />
       <ActionWizard />
       <ActionConfirm />
+      <PowerTimerDialog />
       <ConfirmDialog />
       <QuitDialog />
       <ContextMenu />

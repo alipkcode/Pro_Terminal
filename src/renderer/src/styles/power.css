@@ -1,0 +1,761 @@
+/* ---------------------------------------------------------------- power timer */
+
+/* Registered, so the whole dialog fades between action colors instead of jumping. */
+@property --pw-c {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f43f5e;
+}
+
+.pw-modal {
+  --lc: var(--pw-c);
+  transition: --pw-c 0.45s var(--ease-out);
+}
+.pw-modal .modal__icon {
+  color: var(--pw-c);
+  background: color-mix(in srgb, var(--pw-c) 14%, transparent);
+}
+.pw-modal .switch--on {
+  background: linear-gradient(135deg, var(--pw-c), color-mix(in srgb, var(--pw-c) 70%, #fff));
+}
+
+.pw {
+  display: grid;
+  grid-template-columns: 236px 1fr;
+  gap: 22px;
+  /* About as tall as the form, so switching to the timer's status doesn't make the dialog jump. */
+  min-height: 536px;
+}
+
+.pw-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.pw-go {
+  background: linear-gradient(135deg, var(--pw-c) 0%, color-mix(in srgb, var(--pw-c) 72%, #fff) 100%);
+  border-color: transparent;
+  color: var(--pw-ink, #fff);
+  box-shadow: 0 4px 14px -4px var(--pw-c);
+}
+.pw-go:hover:not(:disabled) {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--pw-c) 90%, #000) 0%, var(--pw-c) 100%);
+  border-color: transparent;
+  box-shadow: 0 6px 18px -4px var(--pw-c);
+}
+.pw-go:disabled {
+  box-shadow: none;
+}
+
+/* ---- the summary on the left */
+
+.pw-side {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 14px 18px;
+  border-radius: 16px;
+  background:
+    radial-gradient(130% 70% at 50% 0%, color-mix(in srgb, var(--pw-c) 20%, transparent), transparent 72%),
+    var(--surface);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.pw-side > .pw-label {
+  align-self: flex-start;
+}
+
+.pw-clock {
+  width: 172px;
+  height: 172px;
+  margin: 8px 0 6px;
+  overflow: visible;
+}
+.pw-clock__glow {
+  fill: var(--pw-c);
+  opacity: 0.16;
+  filter: blur(14px);
+}
+.pw-clock__face {
+  fill: color-mix(in srgb, var(--bg-elev) 82%, var(--pw-c));
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+.pw-clock__track {
+  fill: none;
+  stroke: var(--surface-3);
+  stroke-width: 4;
+}
+.pw-clock__arc {
+  fill: none;
+  stroke: var(--pw-c);
+  stroke-width: 4;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--pw-c) 60%, transparent));
+  transition:
+    stroke-dasharray 0.7s var(--ease-out),
+    opacity 0.3s;
+}
+.pw-clock__tick {
+  stroke: var(--text-4);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.pw-clock__tick--major {
+  stroke: var(--text-3);
+  stroke-width: 2.2;
+}
+.pw-clock__hand {
+  transform-box: view-box;
+  transform-origin: 60px 60px;
+  transition: transform 0.85s var(--ease-spring);
+}
+.pw-clock__hand line {
+  stroke-linecap: round;
+}
+.pw-clock__hand--hour line {
+  stroke: var(--text);
+  stroke-width: 4.2;
+}
+.pw-clock__hand--minute line {
+  stroke: var(--pw-c);
+  stroke-width: 2.6;
+}
+.pw-clock__pin {
+  fill: var(--pw-c);
+  stroke: var(--bg-elev);
+  stroke-width: 1.6;
+}
+
+.pw-side__time {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 40px;
+  width: 100%;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.pw-side__day {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.pw-side__until {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--pw-c);
+  background: color-mix(in srgb, var(--pw-c) 13%, transparent);
+}
+.pw-side__until--bad {
+  color: var(--err);
+  background: var(--err-soft);
+  border-radius: 10px;
+  line-height: 1.35;
+}
+.pw-side__until--bad svg {
+  flex-shrink: 0;
+}
+.pw-side__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.pw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.pw-chip--action {
+  color: var(--pw-c);
+  background: color-mix(in srgb, var(--pw-c) 12%, transparent);
+  border-color: color-mix(in srgb, var(--pw-c) 30%, transparent);
+}
+
+/* ---- the form */
+
+.pw-main {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-width: 0;
+}
+.pw-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pw-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 24px;
+}
+
+.pw-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.pw-act {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 10px 10px 9px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-align: left;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.12s var(--ease-out);
+}
+.pw-act:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+.pw-act:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.pw-act:disabled {
+  cursor: not-allowed;
+}
+.pw-act:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pw-a) 60%, transparent);
+  outline-offset: 2px;
+}
+.pw-act__hl {
+  position: absolute;
+  inset: -1px;
+  border-radius: 12px;
+  border: 1.5px solid var(--pw-a);
+  background: color-mix(in srgb, var(--pw-a) 10%, transparent);
+  box-shadow: 0 8px 22px -12px var(--pw-a);
+  pointer-events: none;
+}
+.pw-act__icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 5px;
+  border-radius: 8px;
+  color: var(--pw-a);
+  background: color-mix(in srgb, var(--pw-a) 15%, transparent);
+  transition:
+    background 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
+}
+.pw-act--on .pw-act__icon {
+  color: var(--pw-a-ink, #fff);
+  background: var(--pw-a);
+  box-shadow: 0 4px 12px -4px var(--pw-a);
+}
+.pw-act__label {
+  position: relative;
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.pw-act__hint {
+  position: relative;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-3);
+}
+
+.pw-days {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+.pw-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  height: 48px;
+  border-radius: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.12s var(--ease-out);
+}
+.pw-day:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+.pw-day:active {
+  transform: scale(0.95);
+}
+.pw-day__hl {
+  position: absolute;
+  inset: -1px;
+  border-radius: 11px;
+  border: 1.5px solid var(--pw-c);
+  background: color-mix(in srgb, var(--pw-c) 13%, transparent);
+  pointer-events: none;
+}
+.pw-day__wd {
+  position: relative;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  transition: color 0.15s;
+}
+.pw-day__num {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.pw-day--on .pw-day__wd {
+  color: var(--pw-c);
+}
+.pw-day--pick svg {
+  position: relative;
+  color: var(--text-2);
+}
+.pw-day__input {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pw-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.pw-wd {
+  height: 48px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.12s var(--ease-out);
+}
+.pw-wd:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.pw-wd:active {
+  transform: scale(0.94);
+}
+.pw-wd--on,
+.pw-wd--on:hover {
+  color: var(--pw-ink, #fff);
+  background: var(--pw-c);
+  border-color: transparent;
+  box-shadow: 0 6px 16px -8px var(--pw-c);
+}
+
+.pw-timerow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.pw-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.pw-time__colon {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 600;
+  color: var(--text-3);
+  margin-top: -4px;
+  animation: pw-colon 2s ease-in-out infinite;
+}
+@keyframes pw-colon {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.pw-spin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 74px;
+  border-radius: 10px;
+  outline: none;
+  cursor: ns-resize;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+.pw-spin:focus-visible,
+.pw-spin:focus {
+  background: color-mix(in srgb, var(--pw-c) 10%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pw-c) 55%, transparent);
+}
+.pw-spin__btn {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 16px;
+  border-radius: 6px;
+  color: var(--text-3);
+  opacity: 0.55;
+  cursor: pointer;
+  transition:
+    opacity 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+.pw-spin:hover .pw-spin__btn,
+.pw-spin:focus .pw-spin__btn {
+  opacity: 1;
+}
+.pw-spin__btn:hover {
+  color: var(--pw-c);
+  background: var(--hover);
+}
+.pw-spin__value {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 46px;
+  overflow: hidden;
+}
+.pw-spin__num {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 650;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.pw-ampm {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 6px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.pw-ampm__opt {
+  position: relative;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text-3);
+  transition: color 0.15s;
+}
+.pw-ampm__opt:hover,
+.pw-ampm__opt--on {
+  color: var(--text);
+}
+.pw-ampm__opt > span:last-child {
+  position: relative;
+}
+.pw-ampm__hl {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pw-c) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pw-c) 40%, transparent);
+}
+
+.pw-quick {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 6px;
+}
+.pw-quick__btn {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition:
+    color 0.15s,
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.12s var(--ease-out);
+}
+.pw-quick__btn:hover {
+  color: var(--pw-c);
+  background: color-mix(in srgb, var(--pw-c) 10%, transparent);
+  border-color: color-mix(in srgb, var(--pw-c) 45%, transparent);
+}
+.pw-quick__btn:active {
+  transform: scale(0.95);
+}
+
+.pw-options .lw-toggle {
+  padding: 9px 14px;
+}
+.pw-option {
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+}
+.pw-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.pw-pair > .lw-toggle + .lw-toggle {
+  border-top: 0;
+  border-left: 1px solid var(--border);
+}
+.pw-select {
+  width: auto;
+  min-width: 122px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.pw-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--text-2);
+  overflow: hidden;
+}
+.pw-note > svg {
+  flex-shrink: 0;
+  color: var(--pw-c);
+}
+.pw-note--live {
+  font-weight: 600;
+  color: var(--pw-c);
+}
+.pw-live-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--pw-c);
+}
+.pw-live-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--pw-c);
+  animation: ping 1.4s ease-out infinite;
+}
+
+/* ---- a timer that is set */
+
+.pw-status {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pw-status__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pw-status__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 13px;
+  color: var(--pw-ink, #fff);
+  background: var(--pw-c);
+  box-shadow: 0 8px 22px -10px var(--pw-c);
+}
+.pw-status__title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 650;
+}
+.pw-status__sub {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.pw-status__count {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background:
+    radial-gradient(90% 120% at 0% 0%, color-mix(in srgb, var(--pw-c) 16%, transparent), transparent 70%),
+    var(--surface);
+  border: 1px solid var(--border);
+}
+.pw-status__clock {
+  font-family: var(--font-display);
+  font-size: 46px;
+  font-weight: 650;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+}
+.pw-status__until {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.pw-row--warn .lw-toggle__icon {
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+.pw-row--warn .lw-toggle__title {
+  color: var(--warn);
+}
+
+/* ---- the power timer's card in the Snippets panel */
+
+.snippet-card__mode--tool {
+  color: var(--pw-c);
+  background: color-mix(in srgb, var(--pw-c) 15%, transparent);
+}
+.snippet-card__tool {
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.snippet-card__tool--set {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--pw-c);
+  background: color-mix(in srgb, var(--pw-c) 10%, transparent);
+  border-color: color-mix(in srgb, var(--pw-c) 30%, transparent);
+}
+.snippet-card__tool--set svg {
+  flex-shrink: 0;
+}
+.snippet-card__tool-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.snippet-card__tool-repeat {
+  opacity: 0.7;
+}
+.snippet-tool-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* ---- the countdown in the status bar */
+
+.pw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--pw-c);
+  background: color-mix(in srgb, var(--pw-c) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pw-c) 30%, transparent);
+  transition: background 0.15s;
+}
+.pw-pill:hover {
+  background: color-mix(in srgb, var(--pw-c) 24%, transparent);
+}
+.pw-pill svg {
+  flex-shrink: 0;
+}
+.pw-pill--soon {
+  animation: pw-pulse 1.6s ease-out infinite;
+}
+@keyframes pw-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--pw-c) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-time__colon,
+  .pw-pill--soon,
+  .pw-live-dot::after {
+    animation: none;
+  }
+  .pw-clock__hand {
+    transition: none;
+  }
+}

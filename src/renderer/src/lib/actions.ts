@@ -124,6 +124,7 @@ export async function boot(): Promise<void> {
   api.library.onChanged((library) => set({ library }))
   api.settings.onChanged((s) => applySettings(s))
   api.system.onQuitRequested((req) => set({ quitRequest: req }))
+  api.power.onChanged((powerTimer) => set({ powerTimer }))
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyChrome(get().settings))
 
   const [info, settings, library, sessions] = await Promise.all([
@@ -134,6 +135,7 @@ export async function boot(): Promise<void> {
   ])
   set({ info, settings, library })
   applyChrome(settings)
+  void api.power.get().then((powerTimer) => set({ powerTimer }))
   void refreshDesktopStatus()
   await refreshArchive()
 
@@ -234,8 +236,8 @@ export function activate(id: string): void {
 
 export function focusActive(): void {
   requestAnimationFrame(() => {
-    const { activeId, viewerId, overlay, paletteOpen } = get()
-    if (viewerId || overlay || paletteOpen) return
+    const { activeId, viewerId, overlay, paletteOpen, powerOpen } = get()
+    if (viewerId || overlay || paletteOpen || powerOpen) return
     getController(activeId)?.focus()
   })
 }
@@ -508,6 +510,12 @@ function promptVars(snippet: Snippet): Promise<Record<string, string> | null> {
 }
 
 export async function runSnippet(snippet: Snippet, modeOverride?: SnippetMode): Promise<void> {
+  // A built-in tool opens instead of typing anything.
+  if (snippet.tool) {
+    void api.library.snippetUsed(snippet.id, {})
+    if (snippet.tool === 'power-timer') set({ powerOpen: true })
+    return
+  }
   const mode = modeOverride ?? snippet.mode
   const values = await promptVars(snippet)
   if (!values) {

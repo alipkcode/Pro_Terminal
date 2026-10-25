@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, Reorder, useDragControls } from 'motion/react'
 import {
+  AlarmClock,
+  AlarmClockOff,
   ArrowDownToLine,
   ArrowUpToLine,
   ChevronRight,
@@ -15,6 +17,7 @@ import {
   Pencil,
   Play,
   Plus,
+  Repeat,
   Search,
   Settings2,
   Sparkles,
@@ -37,8 +40,11 @@ import {
 } from '@/lib/actions'
 import { fuzzyMatch } from '@/lib/fuzzy'
 import { groupSnippets, groupStartsOpen, tokenizeSnippet } from '@/lib/snippets'
+import { cancelPowerTimer, whenPhrase } from '@/lib/power'
+import { POWER_META } from '@shared/power'
 import { PanelHeader } from '../SidePanel'
 import { showContextMenu } from '../ui/ContextMenu'
+import { POWER_ICON } from '../power/powerIcons'
 
 export const MODE_META: Record<SnippetMode, { label: string; verb: string; icon: typeof Play; tip: string }> = {
   run: { label: 'Run', verb: 'Run', icon: Play, tip: 'Types the command and presses Enter' },
@@ -64,7 +70,71 @@ function CommandPreview({ command }: { command: string }) {
   )
 }
 
+/** A built-in tool (the power timer): clicking opens it, and it shows the timer that is set. */
+function ToolCard({ snippet }: { snippet: Snippet }) {
+  const timer = useApp((s) => s.powerTimer)
+  const menu = (e: React.MouseEvent) =>
+    showContextMenu(e, [
+      { label: 'Open', icon: <AlarmClock size={14} />, hint: 'default', run: () => void runSnippet(snippet) },
+      ...(timer ? [{ label: 'Cancel power timer', icon: <AlarmClockOff size={14} />, run: () => void cancelPowerTimer() }] : []),
+      { separator: true },
+      { label: 'Rename…', icon: <Pencil size={14} />, run: () => openSnippetEditor(snippet) },
+      { label: 'Delete', icon: <Trash2 size={14} />, danger: true, run: () => void deleteSnippet(snippet) }
+    ])
+  const TimerIcon = timer ? POWER_ICON[timer.action] : null
+
+  return (
+    <Reorder.Item
+      value={snippet.id}
+      as="div"
+      className="snippet-card snippet-card--tool"
+      style={timer ? ({ ['--pw-c' as string]: POWER_META[timer.action].color } as React.CSSProperties) : undefined}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -16, transition: { duration: 0.15 } }}
+      whileDrag={{ scale: 1.02, boxShadow: 'var(--shadow)' }}
+      onClick={() => void runSnippet(snippet)}
+      onContextMenu={menu}
+    >
+      <div className="snippet-card__head">
+        <span className="snippet-card__mode snippet-card__mode--tool" data-tip="Built-in tool: opens when clicked">
+          <AlarmClock size={11} />
+        </span>
+        <span className="snippet-card__name">{snippet.name}</span>
+        <div className="snippet-card__actions">
+          <button
+            className="icon-btn icon-btn--sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              menu(e)
+            }}
+            data-tip="More"
+          >
+            <MoreHorizontal size={13} />
+          </button>
+        </div>
+      </div>
+      {timer && TimerIcon ? (
+        <div className="snippet-card__tool snippet-card__tool--set">
+          <TimerIcon size={12} />
+          <span className="snippet-card__tool-text">
+            {POWER_META[timer.action].label} {whenPhrase(Math.max(timer.next, timer.warningUntil ?? 0))}
+          </span>
+          {timer.days.length > 0 && <Repeat size={11} className="snippet-card__tool-repeat" />}
+        </div>
+      ) : (
+        <div className="snippet-card__tool">{snippet.description || 'Shut down, restart, sleep or hibernate at a time you pick.'}</div>
+      )}
+    </Reorder.Item>
+  )
+}
+
 function SnippetCard({ snippet }: { snippet: Snippet }) {
+  if (snippet.tool) return <ToolCard snippet={snippet} />
+  return <CommandCard snippet={snippet} />
+}
+
+function CommandCard({ snippet }: { snippet: Snippet }) {
   const Mode = MODE_META[snippet.mode]
   const menu = (e: React.MouseEvent) =>
     showContextMenu(e, [
@@ -276,7 +346,8 @@ export function SnippetsPanel() {
     if (!query.trim()) return snippets
     return snippets
       .map((s) => {
-        const m = fuzzyMatch(query, `${s.name} ${s.group ?? ''}`) ?? fuzzyMatch(query, s.command)
+        // A built-in tool has no real command: it is found by what it does.
+        const m = fuzzyMatch(query, `${s.name} ${s.group ?? ''}`) ?? fuzzyMatch(query, s.tool ? `${s.description ?? ''} shutdown restart sleep hibernate` : s.command)
         return m ? { s, score: m.score } : null
       })
       .filter((x): x is { s: Snippet; score: number } => !!x)

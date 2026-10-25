@@ -8,6 +8,7 @@ import { elapsed, pathSegments, samePath } from '@/lib/format'
 import { SHELL_META } from '@/lib/shell'
 import { getController } from '@/terminal/registry'
 import { ShellIcon } from './icons'
+import { PowerPill } from './power/PowerPill'
 
 function RunningClock({ since }: { since: number }) {
   const [now, setNow] = useState(Date.now())
@@ -38,6 +39,7 @@ export function StatusBar() {
     return (
       <footer className="statusbar">
         <span className="statusbar__muted">{viewerId ? 'Viewing an archived session' : 'No active session'}</span>
+        <PowerPill />
       </footer>
     )
   }
@@ -81,6 +83,7 @@ export function StatusBar() {
       </div>
 
       <div className="statusbar__right">
+        <PowerPill />
         <AnimatePresence mode="wait" initial={false}>
           {s.status === 'busy' ? (
             <motion.span key="busy" className="statusbar__state statusbar__state--busy" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>
